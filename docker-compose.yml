@@ -1,0 +1,28 @@
+services:
+  unshackled:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unshackled_app
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - MIX_ENV=prod
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - DATABASE_PATH=/data/unshackled.db
+      - PHX_HOST=${PHX_HOST:-localhost}
+      - PORT=4000
+    volumes:
+      - unshackled_data:/data
+    restart: unless-stopped
+    networks:
+      - unshackled_network
+
+volumes:
+  unshackled_data:
+    driver: local
+
+networks:
+  unshackled_network:
+    driver: bridge

@@ -1,0 +1,71 @@
+<div class="min-h-full flex flex-col bg-background">
+  <%!-- Header with refined typography and subtle depth --%>
+  <header class="bg-surface border-b border-border-subtle relative">
+    <%!-- Subtle gradient overlay for depth --%>
+    <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none"></div>
+
+    <nav class="mx-auto max-w-7xl px-6 relative">
+      <div class="flex h-14 items-center justify-between">
+        <%!-- Logo with refined styling --%>
+        <a href="/" class="group flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <%!-- Accent bar indicator --%>
+            <div class="w-1 h-6 bg-accent group-hover:h-7 transition-all duration-200"></div>
+            <span class="font-display text-lg font-bold tracking-tight text-text-primary group-hover:text-accent transition-colors duration-200">
+              UNSHACKLED
+            </span>
+          </div>
+        </a>
+
+        <%!-- Navigation with improved spacing --%>
+        <div class="flex items-center gap-1">
+          <a
+            href="/"
+            class={[
+              "btn-pill",
+              nav_link_active?(@current_path, "/") && "btn-pill-active"
+            ]}
+          >
+            Dashboard
+          </a>
+          <a
+            href="/sessions"
+            class={[
+              "btn-pill",
+              nav_link_active?(@current_path, "/sessions") && "btn-pill-active"
+            ]}
+          >
+            Sessions
+          </a>
+          <div class="w-px h-6 bg-border mx-2"></div>
+          <a
+            href="/sessions/new"
+            class={[
+              "btn-pill border-accent text-accent hover:bg-accent hover:text-background",
+              nav_link_active?(@current_path, "/sessions/new") && "bg-accent text-background"
+            ]}
+          >
+            <span class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5">
+                <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
+              </svg>
+              New
+            </span>
+          </a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <%!-- Main content area with page transition --%>
+  <main class="flex-1 page-enter">
+    <div class="mx-auto max-w-7xl px-6 py-8">
+      {@inner_content}
+    </div>
+  </main>
+
+  <%!-- Footer bar for visual grounding --%>
+  <footer class="h-1 bg-gradient-to-r from-transparent via-border to-transparent"></footer>
+
+  <.flash_group flash={@flash} />
+</div>

@@ -1,0 +1,40 @@
+# Elixir/Erlang build artifacts
+/_build/
+/deps/
+/build/
+*.beam
+*.ez
+*.dump
+erl_crash.dump
+rebar3.crashdump
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Environment / secrets
+.env
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+
+# Tool-specific directories
+.ralph/
+.claude/
+.agents/
+.opencode/
+
+# Backup files
+*.bak
+
+# Node
+/assets/node_modules/

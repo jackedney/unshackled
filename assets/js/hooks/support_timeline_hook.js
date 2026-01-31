@@ -1,0 +1,577 @@
+/**
+ * SupportTimelineHook - D3 line chart for support strength over cycles.
+ *
+ * Displays a line chart with:
+ * - X-axis: cycle number
+ * - Y-axis: support strength (0-1)
+ * - Horizontal reference lines at 0.2 (death threshold, red) and 0.85 (graduation, blue)
+ * - Vertical markers at cycles where claim changed
+ * - Tooltips showing claim text at each point
+ * - Brutalist aesthetic: white line on dark background, sharp gridlines
+ *
+ * Data format: {
+ *   support_timeline: [{cycle: 1, support: 0.5, claim_text: "..."}, ...],
+ *   claim_transitions: [{to_cycle: 3, change_type: "refinement", trigger_agent: "operationalizer", ...}, ...]
+ * }
+ */
+const SupportTimelineHook = {
+  mounted() {
+    this.isInitialRender = true;
+    this.tooltip = null;
+    this.renderChart();
+  },
+
+  updated() {
+    this.renderChart();
+  },
+
+  destroyed() {
+    this.cleanup();
+  },
+
+  getData() {
+    const dataAttr = this.el.dataset.chartData;
+
+    if (!dataAttr) {
+      console.warn(
+        "SupportTimelineHook: Missing data-chart-data attribute",
+        this.el.id
+      );
+      return { support_timeline: [], claim_transitions: [] };
+    }
+
+    try {
+      const parsed = JSON.parse(dataAttr);
+      
+      if (Array.isArray(parsed)) {
+        return { support_timeline: parsed, claim_transitions: [] };
+      }
+      
+      return {
+        support_timeline: parsed.support_timeline || [],
+        claim_transitions: parsed.claim_transitions || []
+      };
+    } catch (e) {
+      console.warn("SupportTimelineHook: Failed to parse chart data", e);
+      return { support_timeline: [], claim_transitions: [] };
+    }
+  },
+
+  getConfig() {
+    return {
+      width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 600,
+      height: parseInt(this.el.dataset.chartHeight) || 250,
+      margin: {
+        top: parseInt(this.el.dataset.chartMarginTop) || 20,
+        right: parseInt(this.el.dataset.chartMarginRight) || 30,
+        bottom: parseInt(this.el.dataset.chartMarginBottom) || 40,
+        left: parseInt(this.el.dataset.chartMarginLeft) || 50,
+      },
+    };
+  },
+
+  cleanup() {
+    d3.select(this.el).selectAll("svg").remove();
+  },
+
+  renderChart() {
+    const { support_timeline: data, claim_transitions } = this.getData();
+    const config = this.getConfig();
+    const { width, height, margin } = config;
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+
+    let svg, g, xScale, yScale;
+    const isUpdate = !this.isInitialRender;
+
+    // Scales
+    const xExtent = d3.extent(data, (d) => d.cycle);
+    const newXScale = d3
+      .scaleLinear()
+      .domain([xExtent[0], Math.max(xExtent[1], xExtent[0] + 1)])
+      .range([0, innerWidth]);
+
+    const newYScale = d3.scaleLinear().domain([0, 1]).range([innerHeight, 0]);
+
+    if (isUpdate && this.svg) {
+      // Update existing chart with transitions
+      svg = this.svg;
+      g = this.g;
+
+      // Animate axis rescaling
+      if (this.xAxisG) {
+        const xAxis = d3
+          .axisBottom(newXScale)
+          .ticks(Math.min(data.length, 10))
+          .tickFormat(d3.format("d"));
+        this.xAxisG.transition().duration(300).call(xAxis);
+      }
+
+      if (this.yAxisG) {
+        const yAxis = d3.axisLeft(newYScale).ticks(5).tickFormat(d3.format(".0%"));
+        this.yAxisG.transition().duration(300).call(yAxis);
+      }
+
+      // Animate threshold lines
+      if (this.deathThreshold) {
+        this.deathThreshold.transition().duration(300).attr("y1", newYScale(0.2)).attr("y2", newYScale(0.2));
+        if (this.deathLabel) {
+          this.deathLabel.transition().duration(300).attr("y", newYScale(0.2));
+        }
+      }
+      if (this.gradThreshold) {
+        this.gradThreshold.transition().duration(300).attr("y1", newYScale(0.85)).attr("y2", newYScale(0.85));
+        if (this.gradLabel) {
+          this.gradLabel.transition().duration(300).attr("y", newYScale(0.85));
+        }
+      }
+
+      xScale = newXScale;
+      yScale = newYScale;
+    } else {
+      // Initial render - no transitions
+      this.cleanup();
+
+      svg = d3
+        .select(this.el)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("class", "support-timeline-svg");
+
+      // Empty state
+      if (data.length === 0) {
+        svg
+          .append("text")
+          .attr("x", width / 2)
+          .attr("y", height / 2)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#6b7280")
+          .attr("font-family", "monospace")
+          .text("No data yet");
+        return;
+      }
+
+      g = svg
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      xScale = newXScale;
+      yScale = newYScale;
+
+      // Gridlines - brutalist sharp style
+      const gridColor = "#333333";
+
+      // Y gridlines
+      g.append("g")
+        .attr("class", "grid")
+        .selectAll("line")
+        .data([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        .enter()
+        .append("line")
+        .attr("x1", 0)
+        .attr("x2", innerWidth)
+        .attr("y1", (d) => yScale(d))
+        .attr("y2", (d) => yScale(d))
+        .attr("stroke", gridColor)
+        .attr("stroke-width", 1);
+
+      // Death threshold line (0.2) - red
+      this.deathThreshold = g.append("line")
+        .attr("x1", 0)
+        .attr("x2", innerWidth)
+        .attr("y1", yScale(0.2))
+        .attr("y2", yScale(0.2))
+        .attr("stroke", "#ef4444")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "5,5");
+
+      // Death threshold label
+      this.deathLabel = g.append("text")
+        .attr("x", innerWidth + 5)
+        .attr("y", yScale(0.2))
+        .attr("dy", "0.35em")
+        .attr("fill", "#ef4444")
+        .attr("font-size", "10px")
+        .attr("font-family", "monospace")
+        .text("DEATH");
+
+      // Graduation threshold line (0.85) - blue
+      this.gradThreshold = g.append("line")
+        .attr("x1", 0)
+        .attr("x2", innerWidth)
+        .attr("y1", yScale(0.85))
+        .attr("y2", yScale(0.85))
+        .attr("stroke", "#3b82f6")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "5,5");
+
+      // Graduation threshold label
+      this.gradLabel = g.append("text")
+        .attr("x", innerWidth + 5)
+        .attr("y", yScale(0.85))
+        .attr("dy", "0.35em")
+        .attr("fill", "#3b82f6")
+        .attr("font-size", "10px")
+        .attr("font-family", "monospace")
+        .text("GRAD");
+
+      // X axis
+      const xAxis = d3
+        .axisBottom(xScale)
+        .ticks(Math.min(data.length, 10))
+        .tickFormat(d3.format("d"));
+
+      this.xAxisG = g.append("g")
+        .attr("transform", `translate(0,${innerHeight})`)
+        .call(xAxis)
+        .attr("color", "#9ca3af")
+        .selectAll("text")
+        .attr("fill", "#9ca3af")
+        .attr("font-family", "monospace");
+
+      // X axis label
+      g.append("text")
+        .attr("x", innerWidth / 2)
+        .attr("y", innerHeight + 35)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#6b7280")
+        .attr("font-size", "12px")
+        .attr("font-family", "monospace")
+        .text("CYCLE");
+
+      // Y axis
+      const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".0%"));
+
+      this.yAxisG = g.append("g")
+        .call(yAxis)
+        .attr("color", "#9ca3af")
+        .selectAll("text")
+        .attr("fill", "#9ca3af")
+        .attr("font-family", "monospace");
+
+      // Y axis label
+      g.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -innerHeight / 2)
+        .attr("y", -40)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#6b7280")
+        .attr("font-size", "12px")
+        .attr("font-family", "monospace")
+        .text("SUPPORT");
+    }
+
+    // Gridlines - brutalist sharp style
+    const gridColor = "#333333";
+
+    // Y gridlines
+    g.append("g")
+      .attr("class", "grid")
+      .selectAll("line")
+      .data([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+      .enter()
+      .append("line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", (d) => yScale(d))
+      .attr("y2", (d) => yScale(d))
+      .attr("stroke", gridColor)
+      .attr("stroke-width", 1);
+
+    // Death threshold line (0.2) - red
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", yScale(0.2))
+      .attr("y2", yScale(0.2))
+      .attr("stroke", "#ef4444")
+      .attr("stroke-width", 2)
+      .attr("stroke-dasharray", "5,5");
+
+    // Death threshold label
+    g.append("text")
+      .attr("x", innerWidth + 5)
+      .attr("y", yScale(0.2))
+      .attr("dy", "0.35em")
+      .attr("fill", "#ef4444")
+      .attr("font-size", "10px")
+      .attr("font-family", "monospace")
+      .text("DEATH");
+
+    // Graduation threshold line (0.85) - blue
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", yScale(0.85))
+      .attr("y2", yScale(0.85))
+      .attr("stroke", "#3b82f6")
+      .attr("stroke-width", 2)
+      .attr("stroke-dasharray", "5,5");
+
+    // Graduation threshold label
+    g.append("text")
+      .attr("x", innerWidth + 5)
+      .attr("y", yScale(0.85))
+      .attr("dy", "0.35em")
+      .attr("fill", "#3b82f6")
+      .attr("font-size", "10px")
+      .attr("font-family", "monospace")
+      .text("GRAD");
+
+    // X axis
+    const xAxis = d3
+      .axisBottom(xScale)
+      .ticks(Math.min(data.length, 10))
+      .tickFormat(d3.format("d"));
+
+    g.append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(xAxis)
+      .attr("color", "#9ca3af")
+      .selectAll("text")
+      .attr("fill", "#9ca3af")
+      .attr("font-family", "monospace");
+
+    // X axis label
+    g.append("text")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight + 35)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#6b7280")
+      .attr("font-size", "12px")
+      .attr("font-family", "monospace")
+      .text("CYCLE");
+
+    // Y axis
+    const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".0%"));
+
+    g.append("g")
+      .call(yAxis)
+      .attr("color", "#9ca3af")
+      .selectAll("text")
+      .attr("fill", "#9ca3af")
+      .attr("font-family", "monospace");
+
+    // Y axis label
+    g.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -innerHeight / 2)
+      .attr("y", -40)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#6b7280")
+      .attr("font-size", "12px")
+      .attr("font-family", "monospace")
+      .text("SUPPORT");
+
+    // Line generator
+    const line = d3
+      .line()
+      .x((d) => xScale(d.cycle))
+      .y((d) => yScale(d.support))
+      .curve(d3.curveLinear);
+
+    // Sort data by cycle
+    const sortedData = [...data].sort((a, b) => a.cycle - b.cycle);
+
+    if (isUpdate && this.linePath) {
+      // Animate line extension
+      this.linePath.datum(sortedData).transition().duration(300).attr("d", line);
+    } else {
+      // Draw the line - white on dark
+      this.linePath = g.append("path")
+        .datum(sortedData)
+        .attr("fill", "none")
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+    }
+
+    // Update points - identify new points for fade-in
+    const existingPoints = this.points ? this.points.data().map(d => d.cycle) : [];
+    const newPoints = sortedData.filter(d => !existingPoints.includes(d.cycle));
+
+    // Draw or update points
+    const points = g.selectAll(".point")
+      .data(sortedData, (d) => d.cycle);
+
+    points.exit().remove();
+
+    const pointsEnter = points.enter()
+      .append("circle")
+      .attr("class", "point")
+      .attr("cx", (d) => xScale(d.cycle))
+      .attr("cy", (d) => yScale(d.support))
+      .attr("r", 4)
+      .attr("fill", (d) => this.getSupportColor(d.support))
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1);
+
+    if (isUpdate) {
+      // Fade in new points
+      pointsEnter
+        .attr("opacity", 0)
+        .transition()
+        .duration(300)
+        .attr("opacity", 1);
+    }
+
+    this.points = pointsEnter.merge(points);
+
+    // Update existing points' positions
+    if (isUpdate) {
+      this.points
+        .transition()
+        .duration(300)
+        .attr("cx", (d) => xScale(d.cycle))
+        .attr("cy", (d) => yScale(d.support));
+    }
+
+    // Mark current position (last point) with larger point
+    if (sortedData.length > 0) {
+      const lastPoint = sortedData[sortedData.length - 1];
+      if (isUpdate && this.currentPointMarker) {
+        this.currentPointMarker
+          .transition()
+          .duration(300)
+          .attr("cx", xScale(lastPoint.cycle))
+          .attr("cy", yScale(lastPoint.support));
+      } else {
+        this.currentPointMarker = g.append("circle")
+          .attr("cx", xScale(lastPoint.cycle))
+          .attr("cy", yScale(lastPoint.support))
+          .attr("r", 7)
+          .attr("fill", "none")
+          .attr("stroke", "#ffffff")
+          .attr("stroke-width", 2);
+      }
+    }
+
+    // Add claim change markers
+    this.renderClaimMarkers(g, claim_transitions, xScale, yScale, innerHeight, isUpdate);
+
+    // Add tooltips with claim text
+    this.renderTooltips(this.points, sortedData, xScale, yScale);
+
+    // Store references for updates
+    this.svg = svg;
+    this.g = g;
+    this.isInitialRender = false;
+  },
+
+  getSupportColor(support) {
+    if (support >= 0.85) return "#3b82f6"; // Blue for graduation
+    if (support >= 0.5) return "#22c55e"; // Green for healthy
+    if (support >= 0.2) return "#eab308"; // Yellow for warning
+    return "#ef4444"; // Red for danger
+  },
+
+  renderClaimMarkers(g, claim_transitions, xScale, yScale, innerHeight, isUpdate) {
+    if (isUpdate && this.claimMarkersGroup) {
+      this.claimMarkersGroup.remove();
+    }
+
+    if (!claim_transitions || claim_transitions.length === 0) {
+      this.claimMarkersGroup = null;
+      return;
+    }
+
+    this.claimMarkersGroup = g.append("g").attr("class", "claim-markers");
+
+    claim_transitions.forEach((transition) => {
+      const x = xScale(transition.to_cycle);
+      
+      // Vertical dashed line
+      this.claimMarkersGroup.append("line")
+        .attr("x1", x)
+        .attr("x2", x)
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .attr("stroke", "#a855f7")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-dasharray", "4,4")
+        .attr("opacity", 0.7);
+
+      // Marker label
+      const label = this.claimMarkersGroup.append("text")
+        .attr("x", x + 5)
+        .attr("y", 15)
+        .attr("fill", "#a855f7")
+        .attr("font-size", "9px")
+        .attr("font-family", "monospace")
+        .attr("text-anchor", "start")
+        .text(`${transition.change_type || "Changed"}`);
+      
+      // Add trigger agent as second line
+      if (transition.trigger_agent) {
+        this.claimMarkersGroup.append("text")
+          .attr("x", x + 5)
+          .attr("y", 26)
+          .attr("fill", "#a855f7")
+          .attr("font-size", "8px")
+          .attr("font-family", "monospace")
+          .attr("text-anchor", "start")
+          .attr("opacity", 0.7)
+          .text(`by ${transition.trigger_agent.replace(/_/g, " ")}`);
+      }
+    });
+  },
+
+  renderTooltips(points, data, xScale, yScale) {
+    if (!points || this.tooltip) {
+      if (this.tooltip) {
+        this.tooltip.remove();
+        this.tooltip = null;
+      }
+    }
+
+    points.on("mouseover", (event, d) => {
+      const claimText = d.claim_text || "No claim text available";
+      
+      this.tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "support-timeline-tooltip")
+        .style("position", "absolute")
+        .style("background", "#1f2937")
+        .style("border", "1px solid #4b5563")
+        .style("padding", "8px 12px")
+        .style("border-radius", "4px")
+        .style("font-family", "monospace")
+        .style("font-size", "11px")
+        .style("color", "#e5e7eb")
+        .style("max-width", "300px")
+        .style("z-index", "1000")
+        .style("pointer-events", "none")
+        .style("box-shadow", "0 4px 6px rgba(0, 0, 0, 0.3)");
+
+      this.tooltip.append("div")
+        .style("font-weight", "bold")
+        .style("margin-bottom", "4px")
+        .text(`Cycle ${d.cycle}`);
+
+      this.tooltip.append("div")
+        .style("margin-bottom", "4px")
+        .text(`Support: ${(d.support * 100).toFixed(1)}%`);
+
+      this.tooltip.append("div")
+        .style("font-size", "10px")
+        .style("color", "#9ca3af")
+        .text(claimText.length > 150 ? claimText.substring(0, 150) + "..." : claimText);
+    })
+    .on("mousemove", (event) => {
+      if (this.tooltip) {
+        this.tooltip
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 10) + "px");
+      }
+    })
+    .on("mouseout", () => {
+      if (this.tooltip) {
+        this.tooltip.remove();
+        this.tooltip = null;
+      }
+    });
+  },
+};
+
+export { SupportTimelineHook };

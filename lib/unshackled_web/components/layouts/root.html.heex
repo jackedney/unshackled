@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <meta name="theme-color" content="#050505" />
+    <.live_title suffix=" · Unshackled">
+      <%= assigns[:page_title] || "Dashboard" %>
+    </.live_title>
+    <%!-- Preconnect for faster font loading --%>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <%!-- Google Fonts: JetBrains Mono & Inter --%>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link phx-track-static rel="stylesheet" href="/assets/app.css" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script defer phx-track-static type="text/javascript" src="/assets/app.js">
+    </script>
+  </head>
+  <body class="h-full bg-background text-text-primary antialiased font-body">
+    {@inner_content}
+  </body>
+</html>

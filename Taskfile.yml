@@ -1,0 +1,205 @@
+# https://taskfile.dev
+version: "3"
+
+vars:
+  MIX_ENV: '{{.MIX_ENV | default "dev"}}'
+
+dotenv: [".env"]
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  # Setup & Installation
+  setup:
+    desc: Complete project setup (deps, database, assets)
+    cmds:
+      - mix setup
+
+  deps:
+    desc: Install Elixir dependencies
+    cmds:
+      - mix deps.get
+
+  deps-update:
+    desc: Update all dependencies
+    cmds:
+      - mix deps.update --all
+
+  db-create:
+    desc: Create the database
+    cmds:
+      - mix ecto.create
+
+  db-migrate:
+    desc: Run database migrations
+    cmds:
+      - mix ecto.migrate
+
+  db-reset:
+    desc: Drop, create, and migrate database
+    cmds:
+      - mix ecto.drop
+      - mix ecto.create
+      - mix ecto.migrate
+
+  db-rollback:
+    desc: Rollback the last migration
+    cmds:
+      - mix ecto.rollback
+
+  assets-setup:
+    desc: Install Tailwind and esbuild
+    cmds:
+      - mix assets.setup
+
+  assets-build:
+    desc: Build frontend assets
+    cmds:
+      - mix assets.build
+
+  # Development
+  dev:
+    desc: Start the Phoenix server (http://localhost:4000)
+    cmds:
+      - mix phx.server
+
+  iex:
+    desc: Start Phoenix with interactive Elixir shell
+    cmds:
+      - iex -S mix phx.server
+
+  console:
+    desc: Start interactive Elixir shell (without Phoenix)
+    cmds:
+      - iex -S mix
+
+  compile:
+    desc: Compile the project
+    cmds:
+      - mix compile
+
+  compile-warnings:
+    desc: Compile with warnings as errors
+    cmds:
+      - mix compile --warnings-as-errors
+
+  routes:
+    desc: List all routes
+    cmds:
+      - mix phx.routes
+
+  # Testing & Quality
+  test:
+    desc: Run all tests
+    cmds:
+      - mix test
+
+  test-watch:
+    desc: Run tests in watch mode
+    cmds:
+      - mix test --stale --listen-on-stdin
+
+  test-cover:
+    desc: Run tests with coverage report
+    cmds:
+      - mix test --cover
+
+  test-failed:
+    desc: Re-run only failed tests
+    cmds:
+      - mix test --failed
+
+  lint:
+    desc: Run Credo linter
+    cmds:
+      - mix credo
+
+  lint-strict:
+    desc: Run Credo in strict mode
+    cmds:
+      - mix credo --strict
+
+  format:
+    desc: Format all Elixir code
+    cmds:
+      - mix format
+
+  format-check:
+    desc: Check code formatting
+    cmds:
+      - mix format --check-formatted
+
+  dialyzer:
+    desc: Run Dialyzer type checker
+    cmds:
+      - mix dialyzer
+
+  check:
+    desc: Run all quality checks (format, lint, dialyzer, test)
+    cmds:
+      - task: format-check
+      - task: lint-strict
+      - task: dialyzer
+      - task: test
+
+  # Production
+  build:
+    desc: Build production release
+    env:
+      MIX_ENV: prod
+    cmds:
+      - mix deps.get --only prod
+      - mix compile
+      - mix assets.deploy
+      - mix release
+
+  # Docker
+  docker-up:
+    desc: Start Docker containers
+    cmds:
+      - docker-compose up -d
+
+  docker-down:
+    desc: Stop Docker containers
+    cmds:
+      - docker-compose down
+
+  docker-logs:
+    desc: Follow Docker container logs
+    cmds:
+      - docker-compose logs -f unshackled
+
+  docker-build:
+    desc: Build Docker image
+    cmds:
+      - docker-compose build
+
+  docker-restart:
+    desc: Restart Docker containers
+    cmds:
+      - docker-compose restart
+
+  # Utilities
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf _build deps
+
+  clean-all:
+    desc: Clean everything including database
+    cmds:
+      - rm -rf _build deps
+      - rm -f priv/*.db priv/*.db-*
+
+  gen-migration:
+    desc: "Generate a new migration (usage: task gen-migration -- name)"
+    cmds:
+      - mix ecto.gen.migration {{.CLI_ARGS}}
+
+  gen-live:
+    desc: "Generate LiveView scaffold (usage: task gen-live -- Context Schema)"
+    cmds:
+      - mix phx.gen.live {{.CLI_ARGS}}

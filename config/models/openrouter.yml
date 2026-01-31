@@ -1,0 +1,98 @@
+# OpenRouter model configuration for ExLLM
+# These models are available via OpenRouter API
+
+provider: openrouter
+default_model: "anthropic/claude-opus-4.5"
+
+models:
+  "openai/gpt-5.2":
+    name: "GPT-5.2"
+    context_window: 128000
+    pricing:
+      input: 5.00
+      output: 15.00
+    capabilities:
+      - streaming
+      - function_calling
+      - vision
+
+  "openai/gpt-5-nano":
+    name: "GPT-5 Nano"
+    context_window: 32000
+    pricing:
+      input: 0.10
+      output: 0.40
+    capabilities:
+      - streaming
+
+  "google/gemini-3-pro-preview":
+    name: "Gemini 3 Pro Preview"
+    context_window: 1000000
+    pricing:
+      input: 1.25
+      output: 5.00
+    capabilities:
+      - streaming
+      - function_calling
+      - vision
+
+  "moonshotai/kimi-k2.5":
+    name: "Kimi K2.5"
+    context_window: 128000
+    pricing:
+      input: 2.00
+      output: 8.00
+    capabilities:
+      - streaming
+
+  "anthropic/claude-opus-4.5":
+    name: "Claude Opus 4.5"
+    context_window: 200000
+    pricing:
+      input: 15.00
+      output: 75.00
+    capabilities:
+      - streaming
+      - function_calling
+      - vision
+
+  "anthropic/claude-haiku-4.5":
+    name: "Claude Haiku 4.5"
+    context_window: 200000
+    pricing:
+      input: 0.80
+      output: 4.00
+    capabilities:
+      - streaming
+      - function_calling
+      - vision
+
+  "z-ai/glm-4.7":
+    name: "GLM-4.7"
+    context_window: 128000
+    pricing:
+      input: 1.00
+      output: 4.00
+    capabilities:
+      - streaming
+      - function_calling
+
+  "deepseek/deepseek-v3.2":
+    name: "DeepSeek V3.2"
+    context_window: 64000
+    pricing:
+      input: 0.27
+      output: 1.10
+    capabilities:
+      - streaming
+      - function_calling
+
+  "mistralai/mistral-large-2512":
+    name: "Mistral Large 2512"
+    context_window: 128000
+    pricing:
+      input: 2.00
+      output: 6.00
+    capabilities:
+      - streaming
+      - function_calling

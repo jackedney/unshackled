@@ -1,0 +1,17 @@
+_build/
+deps/
+.git/
+.gitignore
+.gitattributes
+.claude/
+.ralph/
+.agents/
+.opencode/
+*.log
+erl_crash.dump
+.DS_Store
+*.db-shm
+*.db-wal
+doc/
+.coverage
+dialyxir_erlang-*.plt
