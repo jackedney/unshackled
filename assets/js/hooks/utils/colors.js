@@ -26,7 +26,7 @@ export function formatRole(role) {
 
 export function formatRoleShort(role, maxLen) {
   if (maxLen === undefined) {
-    const abbrevs = { explorer: "EXP", critic: "CRT", connector: "CON", steelman: "STL", operationalizer: "OPR", quantifier: "QNT", reducer: "RED", boundary_hunter: "BND", translator: "TRN", historian: "HST", grave_keeper: "GRV", cartographer: "CRT", perturber: "PTB" };
+    const abbrevs = { explorer: "EXP", critic: "CRT", connector: "CON", steelman: "STL", operationalizer: "OPR", quantifier: "QNT", reducer: "RED", boundary_hunter: "BND", translator: "TRN", historian: "HST", grave_keeper: "GRV", cartographer: "CAR", perturber: "PTB" };
     return abbrevs[role] || role.substring(0, 3).toUpperCase();
   }
   const formatted = formatRole(role);
@@ -34,17 +34,9 @@ export function formatRoleShort(role, maxLen) {
 }
 
 export function supportToColorGradient(support) {
-  if (support <= 0.5) {
-    const t = support * 2;
-    return "#" + [255, Math.round(255 * t), 0].map(x => {
-      const hex = x.toString(16);
-      return hex.length === 1 ? "0" + hex : hex;
-    }).join("");
-  } else {
-    const t = (support - 0.5) * 2;
-    return "#" + [Math.round(255 * (1 - t)), 255, 0].map(x => {
-      const hex = x.toString(16);
-      return hex.length === 1 ? "0" + hex : hex;
-    }).join("");
-  }
+  const t = support <= 0.5 ? support * 2 : (support - 0.5) * 2;
+  const hex = x => (x.toString(16).padStart(2, '0'));
+  const r = support <= 0.5 ? 255 : Math.round(255 * (1 - t));
+  const g = support <= 0.5 ? Math.round(255 * t) : 255;
+  return "#" + [r, g, 0].map(hex).join("");
 }

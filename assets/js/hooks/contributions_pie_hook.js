@@ -3,30 +3,14 @@ import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } f
 import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';
 
-/**
- * ContributionsPieHook - D3 pie/donut chart for agent contributions.
- *
- * Displays a pie chart showing contribution counts by agent role.
- * Each role has a distinct color and the chart includes a legend.
- *
- * Data format: [{role: 'explorer', count: 15, color: '#ff0000'}, ...]
- *
- * Brutalist aesthetic: sharp edges on segments, high contrast colors, no rounded caps.
- */
 const ContributionsPieHook = {
   mounted() {
     this.isInitialRender = true;
     this.renderChart();
   },
-
-  updated() {
-    this.renderChart();
-  },
-
+  updated() { this.renderChart(); },
   destroyed() {
-    if (this.tooltip) {
-      this.tooltip.remove();
-    }
+    this.tooltip?.remove();
     this.cleanup();
   },
 
@@ -57,24 +41,8 @@ const ContributionsPieHook = {
     // Filter out roles with 0 contributions
     const filteredData = data.filter((d) => d.count > 0);
 
-    // Empty state
     if (filteredData.length === 0) {
-      if (!isUpdate) {
-        const svg = d3
-          .select(this.el)
-          .append("svg")
-          .attr("width", width)
-          .attr("height", height)
-          .attr("class", "contributions-pie-svg");
-
-        svg
-          .append("text")
-          .attr("x", width / 2)
-          .attr("y", height / 2)
-          .attr("text-anchor", "middle")
-          .call(applyTextStyle, { fill: "#6b7280" })
-          .text("No contributions yet");
-      }
+      if (!isUpdate) d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "contributions-pie-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No contributions yet");
       return;
     }
 
@@ -97,131 +65,57 @@ const ContributionsPieHook = {
     const radius = Math.min(pieWidth, pieHeight) / 2;
     const innerRadius = radius * 0.4; // Donut hole
 
-    // Create pie layout
-    const pie = d3
-      .pie()
-      .value((d) => d.count)
-      .sort(null); // Keep original order
-
-    // Create arc generator - sharp edges (no corner radius)
+    const pie = d3.pie().value(d => d.count).sort(null);
     const arc = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+    const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 8);
 
-    // Arc for hover state
-    const arcHover = d3
-      .arc()
-      .innerRadius(innerRadius)
-      .outerRadius(radius + 8);
+    let pieGroup = isUpdate ? this.pieGroup : svg.append("g").attr("transform", `translate(${margin.left + pieWidth / 2},${margin.top + pieHeight / 2})`);
+    if (!isUpdate) this.pieGroup = pieGroup;
 
-    // Create or get pie group
-    let pieGroup;
-    if (isUpdate && this.pieGroup) {
-      pieGroup = this.pieGroup;
-    } else {
-      pieGroup = svg
-        .append("g")
-        .attr(
-          "transform",
-          `translate(${margin.left + pieWidth / 2},${margin.top + pieHeight / 2})`
-        );
-      this.pieGroup = pieGroup;
-    }
-
-    // Draw or update pie segments
     const pieData = pie(filteredData);
-    const segments = pieGroup
-      .selectAll(".segment")
-      .data(pieData, (d) => d.data.role);
-
+    const segments = pieGroup.selectAll(".segment").data(pieData, d => d.data.role);
     segments.exit().remove();
 
-    const segmentsEnter = segments.enter()
-      .append("g")
-      .attr("class", "segment");
-
-      segmentsEnter
+    const segmentsEnter = segments.enter().append("g").attr("class", "segment")
       .append("path")
       .attr("d", arc)
-      .attr("fill", (d) => d.data.color || getRoleColor(d.data.role))
+      .attr("fill", d => d.data.color || getRoleColor(d.data.role))
       .attr("stroke", "#0a0a0a")
       .attr("stroke-width", 2)
       .style("cursor", "pointer");
 
     if (isUpdate) {
-      // Fade in new segments
-      segmentsEnter.select("path")
-        .attr("opacity", 0)
-        .transition()
-        .duration(300)
-        .attr("opacity", 1);
+      segmentsEnter.attr("opacity", 0).transition().duration(300).attr("opacity", 1);
     }
 
     const segmentsMerge = segmentsEnter.merge(segments);
 
-    // Animate existing segments to new positions
     if (isUpdate) {
-      segmentsMerge.select("path")
-        .transition()
-        .duration(300)
-        .attr("d", arc)
-        .attr("fill", (d) => d.data.color || getRoleColor(d.data.role));
+      segmentsMerge.transition().duration(300).attr("d", arc).attr("fill", d => d.data.color || getRoleColor(d.data.role));
     }
 
-    // Create or update tooltip
-    if (!this.tooltip) {
-      this.tooltip = createTooltip("contributions-pie-tooltip");
-    }
+    if (!this.tooltip) this.tooltip = createTooltip("contributions-pie-tooltip");
     const tooltip = this.tooltip;
 
-    // Setup event handlers for segments
-    segmentsMerge
-      .on("mouseenter", function (event, d) {
-        d3.select(this).select("path").transition().duration(100).attr("d", arcHover);
+    segmentsMerge.on("mouseenter", function (event, d) {
+      d3.select(this).select("path").transition().duration(100).attr("d", arcHover);
+      showTooltip(tooltip, `<span class="font-bold">${formatRole(d.data.role)}</span><br>${d.data.count} contributions`, event);
+    }).on("mouseleave", function () {
+      d3.select(this).select("path").transition().duration(100).attr("d", arc);
+      hideTooltip(tooltip);
+    });
 
-        showTooltip(
-          tooltip,
-          `<span class="font-bold">${formatRole(d.data.role)}</span><br>${d.data.count} contributions`,
-          event
-        );
-      })
-      .on("mouseleave", function () {
-        d3.select(this).select("path").transition().duration(100).attr("d", arc);
-
-        hideTooltip(tooltip);
-      });
-
-    // Draw or update center text (total count)
     const totalCount = filteredData.reduce((sum, d) => sum + d.count, 0);
     if (!isUpdate) {
-      pieGroup
-        .append("text")
-        .attr("class", "center-label")
-        .attr("text-anchor", "middle")
-        .attr("dy", "-0.2em")
-        .call(applyTextStyle)
-        .text("TOTAL");
-
-      pieGroup
-        .append("text")
-        .attr("class", "center-count")
-        .attr("text-anchor", "middle")
-        .attr("dy", "1em")
-        .call(applyTextStyle, { fill: "#ffffff", "font-size": "20px" })
-        .attr("font-weight", "bold")
-        .text(totalCount);
+      pieGroup.append("text").attr("class", "center-label").attr("text-anchor", "middle").attr("dy", "-0.2em").call(applyTextStyle).text("TOTAL");
+      pieGroup.append("text").attr("class", "center-count").attr("text-anchor", "middle").attr("dy", "1em").call(applyTextStyle, { fill: "#ffffff", "font-size": "20px" }).attr("font-weight", "bold").text(totalCount);
     } else {
-      pieGroup.select(".center-count")
-        .text(totalCount);
+      pieGroup.select(".center-count").text(totalCount);
     }
 
-    // Draw legend below chart (only on initial render)
     if (!isUpdate) {
       const legendY = margin.top + pieHeight + 15;
-      const legendItems = filteredData.map((d) => ({
-        label: `${formatRoleShort(d.role)} (${d.count})`,
-        color: d.color || getRoleColor(d.role),
-      }));
-
-      renderLegend(svg, legendItems, {
+      renderLegend(svg, filteredData.map(d => ({ label: `${formatRoleShort(d.role)} (${d.count})`, color: d.color || getRoleColor(d.role) })), {
         position: { x: margin.left, y: legendY },
         type: 'grid',
         maxItemsPerRow: 3,

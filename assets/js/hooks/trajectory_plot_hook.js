@@ -1,36 +1,17 @@
 import { parseChartData, getChartDimensions } from './utils/chart_dom.js';
-import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle, escapeHtml } from './utils/chart_dom.js';
 import { TRANSITION_DURATION } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';
 import { renderXAxis, renderYAxis, renderGridlines } from './utils/axes.js';
 
-/**
- * TrajectoryPlotHook - D3 2D scatter plot for embedding space trajectory.
- *
- * Displays a scatter plot showing the trajectory of claims through the embedding space:
- * - X/Y from PCA-reduced embeddings
- * - Points connected with lines to show trajectory path
- * - Points colored by cycle number (gradient from start to current)
- * - Current position marked distinctly (larger point)
- *
- * Data format: [{cycle: 1, x: 0.5, y: -0.3}, {cycle: 2, x: 0.6, y: -0.1}, ...]
- *
- * Brutalist aesthetic: white points/lines on dark background.
- */
 const TrajectoryPlotHook = {
   mounted() {
     this.isInitialRender = true;
     this.renderChart();
   },
-
-  updated() {
-    this.renderChart();
-  },
-
+  updated() { this.renderChart(); },
   destroyed() {
-    if (this.tooltip) {
-      this.tooltip.remove();
-    }
+    this.tooltip?.remove();
     this.cleanup();
   },
 
@@ -63,24 +44,8 @@ const TrajectoryPlotHook = {
     // Sort data by cycle number
     const sortedData = [...data].sort((a, b) => a.cycle - b.cycle);
 
-    // Empty state - need at least one point
     if (sortedData.length === 0) {
-      if (!isUpdate) {
-        const svg = d3
-          .select(this.el)
-          .append("svg")
-          .attr("width", width)
-          .attr("height", height)
-          .attr("class", "trajectory-plot-svg");
-
-        svg
-          .append("text")
-          .attr("x", width / 2)
-          .attr("y", height / 2)
-          .attr("text-anchor", "middle")
-          .call(applyTextStyle, { fill: "#6b7280" })
-          .text("No trajectory data yet");
-      }
+      if (!isUpdate) d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "trajectory-plot-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No trajectory data yet");
       return;
     }
 
@@ -113,42 +78,18 @@ const TrajectoryPlotHook = {
       svg = this.svg;
       g = this.g;
 
-      // Animate gridlines
-      const xTicks = newXScale.ticks(5);
-      if (this.gridX) {
-        this.gridX.selectAll("line")
-          .data(xTicks)
-          .transition()
-          .duration(TRANSITION_DURATION)
-          .attr("x1", (d) => newXScale(d))
-          .attr("x2", (d) => newXScale(d));
-      }
-
-      const yTicks = newYScale.ticks(5);
-      if (this.gridY) {
-        this.gridY.selectAll("line")
-          .data(yTicks)
-          .transition()
-          .duration(TRANSITION_DURATION)
-          .attr("y1", (d) => newYScale(d))
-          .attr("y2", (d) => newYScale(d));
-      }
-
-      // Animate axis rescaling
+      const updateGrid = (grid, scale, ticks, attr) => grid?.selectAll("line").data(ticks).transition().duration(TRANSITION_DURATION).attr(`x${attr}`, d => scale(d));
+      updateGrid(this.gridX, newXScale, newXScale.ticks(5), '1');
+      updateGrid(this.gridX, newXScale, newXScale.ticks(5), '2');
+      updateGrid(this.gridY, newYScale, newYScale.ticks(5), '1');
+      updateGrid(this.gridY, newYScale, newYScale.ticks(5), '2');
       if (this.xAxisG) {
         const xAxis = d3.axisBottom(newXScale).ticks(5);
-        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis)
-          .attr("color", "#9ca3af")
-          .selectAll("text")
-          .call(applyTextStyle);
+        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis).attr("color", "#9ca3af").selectAll("text").call(applyTextStyle);
       }
-
       if (this.yAxisG) {
         const yAxis = d3.axisLeft(newYScale).ticks(5);
-        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis)
-          .attr("color", "#9ca3af")
-          .selectAll("text")
-          .call(applyTextStyle);
+        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis).attr("color", "#9ca3af").selectAll("text").call(applyTextStyle);
       }
 
       xScale = newXScale;
@@ -186,125 +127,66 @@ const TrajectoryPlotHook = {
         tickCount: 5,
         innerWidth
       });
+    }
 
-    // Draw trajectory line connecting points (only if more than 1 point)
     if (sortedData.length > 1) {
-      const line = d3
-        .line()
-        .x((d) => xScale(d.x))
-        .y((d) => yScale(d.y))
-        .curve(d3.curveLinear);
-
+      const line = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)).curve(d3.curveLinear);
       if (isUpdate && this.trajectoryLine) {
-        // Animate line extension
         this.trajectoryLine.datum(sortedData).transition().duration(TRANSITION_DURATION).attr("d", line);
       } else {
-        this.trajectoryLine = g.append("path")
-          .datum(sortedData)
-          .attr("fill", "none")
-          .attr("stroke", "#6b7280")
-          .attr("stroke-width", 1.5)
-          .attr("stroke-dasharray", "4,4")
-          .attr("d", line);
+        this.trajectoryLine = g.append("path").datum(sortedData).attr("fill", "none").attr("stroke", "#6b7280").attr("stroke-width", 1.5).attr("stroke-dasharray", "4,4").attr("d", line);
       }
     } else if (this.trajectoryLine && sortedData.length === 1) {
-      // Remove line if we went from multiple points to single point
       this.trajectoryLine.remove();
       this.trajectoryLine = null;
     }
 
-    // Create or update tooltip
-    if (!this.tooltip) {
-      this.tooltip = createTooltip("trajectory-plot-tooltip");
-    }
+    if (!this.tooltip) this.tooltip = createTooltip("trajectory-plot-tooltip");
     const tooltip = this.tooltip;
-
-    // Draw or update points
     const existingPoints = this.points ? this.points.data().map(d => d.cycle) : [];
     const newPoints = sortedData.filter(d => !existingPoints.includes(d.cycle));
 
-    const points = g.selectAll(".trajectory-point")
-      .data(sortedData, (d) => d.cycle);
-
+    const points = g.selectAll(".trajectory-point").data(sortedData, d => d.cycle);
     points.exit().remove();
 
     const pointsEnter = points.enter()
       .append("circle")
       .attr("class", "trajectory-point")
-      .attr("cx", (d) => xScale(d.x))
-      .attr("cy", (d) => yScale(d.y))
+      .attr("cx", d => xScale(d.x))
+      .attr("cy", d => yScale(d.y))
       .attr("r", (d, i) => (i === sortedData.length - 1 ? 8 : 5))
-      .attr("fill", (d) => colorScale(d.cycle))
+      .attr("fill", d => colorScale(d.cycle))
       .attr("stroke", "#ffffff")
       .attr("stroke-width", (d, i) => (i === sortedData.length - 1 ? 2 : 1))
       .style("cursor", "pointer");
 
     if (isUpdate) {
-      // Fade in new points
-      pointsEnter
-        .attr("opacity", 0)
-        .transition()
-        .duration(TRANSITION_DURATION)
-        .attr("opacity", 1);
+      pointsEnter.attr("opacity", 0).transition().duration(TRANSITION_DURATION).attr("opacity", 1);
     }
 
     this.points = pointsEnter.merge(points);
 
-    // Update existing points' positions
     if (isUpdate) {
-      this.points
-        .transition()
-        .duration(TRANSITION_DURATION)
-        .attr("cx", (d) => xScale(d.x))
-        .attr("cy", (d) => yScale(d.y))
-        .attr("fill", (d) => colorScale(d.cycle))
-        .attr("r", (d, i) => (i === sortedData.length - 1 ? 8 : 5))
-        .attr("stroke-width", (d, i) => (i === sortedData.length - 1 ? 2 : 1));
+      this.points.transition().duration(TRANSITION_DURATION).attr("cx", d => xScale(d.x)).attr("cy", d => yScale(d.y)).attr("fill", d => colorScale(d.cycle)).attr("r", (d, i) => (i === sortedData.length - 1 ? 8 : 5)).attr("stroke-width", (d, i) => (i === sortedData.length - 1 ? 2 : 1));
     }
 
-    // Setup event handlers for points
-    this.points
-      .on("mouseenter", function (event, d) {
-        d3.select(this)
-          .transition()
-          .duration(100)
-          .attr("r", d3.select(this).attr("r") * 1.5);
+    this.points.on("mouseenter", function (event, d) {
+      d3.select(this).transition().duration(100).attr("r", d3.select(this).attr("r") * 1.5);
+      const supportPct = d.support ? (d.support * 100).toFixed(1) + "%" : "N/A";
+      const claimText = d.claim ? escapeHtml(d.claim.substring(0, 50)) + (d.claim.length > 50 ? "..." : "") : "";
+      showTooltip(tooltip, `<span class="font-bold">Cycle ${d.cycle}</span><br>Support: ${supportPct}<br>${claimText ? `<span class="text-gray-400">${claimText}</span>` : ""}`, event);
+    }).on("mouseleave", function (event, d) {
+      const isLast = d.cycle === sortedData[sortedData.length - 1].cycle;
+      d3.select(this).transition().duration(100).attr("r", isLast ? 8 : 5);
+      hideTooltip(tooltip);
+    });
 
-        const supportPct = d.support ? (d.support * 100).toFixed(1) + "%" : "N/A";
-        const html = `
-          <span class="font-bold">Cycle ${d.cycle}</span><br>
-          Support: ${supportPct}<br>
-          ${d.claim ? `<span class="text-gray-400">${d.claim.substring(0, 50)}${d.claim.length > 50 ? "..." : ""}</span>` : ""}
-        `;
-        showTooltip(tooltip, html, event);
-      })
-      .on("mouseleave", function (event, d) {
-        const isLast = d.cycle === sortedData[sortedData.length - 1].cycle;
-        d3.select(this)
-          .transition()
-          .duration(100)
-          .attr("r", isLast ? 8 : 5);
-
-        hideTooltip(tooltip);
-      });
-
-    // Mark current position with outer ring
-    if (sortedData.length > 0) {
+    if (sortedData.length) {
       const lastPoint = sortedData[sortedData.length - 1];
       if (isUpdate && this.currentPointMarker) {
-        this.currentPointMarker
-          .transition()
-          .duration(TRANSITION_DURATION)
-          .attr("cx", xScale(lastPoint.x))
-          .attr("cy", yScale(lastPoint.y));
+        this.currentPointMarker.transition().duration(TRANSITION_DURATION).attr("cx", xScale(lastPoint.x)).attr("cy", yScale(lastPoint.y));
       } else {
-        this.currentPointMarker = g.append("circle")
-          .attr("cx", xScale(lastPoint.x))
-          .attr("cy", yScale(lastPoint.y))
-          .attr("r", 12)
-          .attr("fill", "none")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 2);
+        this.currentPointMarker = g.append("circle").attr("cx", xScale(lastPoint.x)).attr("cy", yScale(lastPoint.y)).attr("r", 12).attr("fill", "none").attr("stroke", "#ffffff").attr("stroke-width", 2);
       }
     }
 
@@ -326,18 +208,9 @@ const TrajectoryPlotHook = {
         labelOffset: 45
       });
 
-      // Legend for cycle gradient - positioned below chart
-      const legendWidth = 100;
-      const legendHeight = 10;
-      const legendY = innerHeight + 10;
-      const legendX = (innerWidth - legendWidth) / 2;
-
+      const legendWidth = 100, legendHeight = 10, legendY = innerHeight + 10, legendX = (innerWidth - legendWidth) / 2;
       renderLegend(g, {
-        startColor: '#06b6d4',
-        endColor: '#ffffff',
-        startLabel: `C${cycleExtent[0]}`,
-        endLabel: `C${cycleExtent[1]}`,
-        title: 'CYCLE',
+        startColor: '#06b6d4', endColor: '#ffffff', startLabel: `C${cycleExtent[0]}`, endLabel: `C${cycleExtent[1]}`, title: 'CYCLE',
       }, {
         position: { x: legendX, y: legendY },
         type: 'gradient',
@@ -345,8 +218,7 @@ const TrajectoryPlotHook = {
         labelStyle: { fill: '#6b7280', 'font-family': 'monospace', 'font-size': '10px' },
       });
     }
-    }
-    
+
     // Store references for updates
     this.svg = svg;
     this.g = g;

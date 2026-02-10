@@ -42,19 +42,12 @@ const ChartHook = {
     }
   },
 
-  /**
-   * Get chart configuration from data attributes.
-   */
   getConfig() {
+    const margin = (side) => parseInt(this.el.dataset[`chartMargin${side.charAt(0).toUpperCase() + side.slice(1)}`]);
     return {
       width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 400,
       height: parseInt(this.el.dataset.chartHeight) || 200,
-      margin: {
-        top: parseInt(this.el.dataset.chartMarginTop) || 20,
-        right: parseInt(this.el.dataset.chartMarginRight) || 20,
-        bottom: parseInt(this.el.dataset.chartMarginBottom) || 30,
-        left: parseInt(this.el.dataset.chartMarginLeft) || 40
-      }
+      margin: { top: margin('top') || 20, right: margin('right') || 20, bottom: margin('bottom') || 30, left: margin('left') || 40 }
     };
   },
 

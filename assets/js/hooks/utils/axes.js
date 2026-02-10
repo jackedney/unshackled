@@ -2,18 +2,18 @@ import { applyTextStyle } from './chart_dom.js';
 
 export function renderXAxis(g, xScale, config = {}) {
   const { tickCount = 5, tickFormat, innerHeight, innerWidth, label, labelOffset = 35 } = config;
-  const xAxis = d3.axisBottom(xScale).ticks(tickCount);
-  if (tickFormat) xAxis.tickFormat(tickFormat);
-  const xAxisG = g.append("g").attr("transform", `translate(0,${innerHeight})`).call(xAxis).attr("color", "#9ca3af").selectAll("text").call(applyTextStyle);
+  const xAxis = d3.axisBottom(xScale).ticks(tickCount).tickFormat(tickFormat);
+  const xAxisG = g.append("g").attr("transform", `translate(0,${innerHeight})`).call(xAxis).attr("color", "#9ca3af");
+  xAxisG.selectAll("text").call(applyTextStyle);
   if (label) g.append("text").attr("x", innerWidth / 2).attr("y", innerHeight + labelOffset).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text(label);
   return xAxisG;
 }
 
 export function renderYAxis(g, yScale, config = {}) {
   const { tickCount = 5, tickFormat, innerHeight, label, labelOffset = 40 } = config;
-  const yAxis = d3.axisLeft(yScale).ticks(tickCount);
-  if (tickFormat) yAxis.tickFormat(tickFormat);
-  const yAxisG = g.append("g").call(yAxis).attr("color", "#9ca3af").selectAll("text").call(applyTextStyle);
+  const yAxis = d3.axisLeft(yScale).ticks(tickCount).tickFormat(tickFormat);
+  const yAxisG = g.append("g").call(yAxis).attr("color", "#9ca3af");
+  yAxisG.selectAll("text").call(applyTextStyle);
   if (label) g.append("text").attr("transform", "rotate(-90)").attr("x", -innerHeight / 2).attr("y", -labelOffset).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text(label);
   return yAxisG;
 }

@@ -46,18 +46,11 @@ export const InfiniteScrollHook = {
   },
 
   destroyed() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
+    this.observer?.disconnect();
   },
 
   reconnected() {
     this.loading = false;
-    if (this.sentinel) {
-      this.observer.observe(this.sentinel);
-    }
-  },
-
-  handleScroll(e) {
+    this.observer?.observe(this.sentinel);
   }
 };
