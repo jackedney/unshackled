@@ -1,4 +1,4 @@
-import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { parseChartData, getChartDimensions } from './utils/chart_dom.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
 import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';

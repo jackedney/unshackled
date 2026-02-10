@@ -1,4 +1,4 @@
-import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { parseChartData, getChartDimensions } from './utils/chart_dom.js';
 import { supportToColorGradient } from './utils/colors.js';
 
 /**

@@ -1,4 +1,4 @@
-import { FLASH_DISMISS_MS } from './utils/constants.js';
+import { FLASH_DISMISS_MS } from './utils/colors.js';
 
 /**
  * FlashHook - Auto-dismisses info flash messages after 4 seconds

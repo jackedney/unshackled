@@ -1,7 +1,6 @@
-import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { parseChartData, getChartDimensions } from './utils/chart_dom.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
-import { supportToColor } from './utils/colors.js';
-import { TRANSITION_DURATION, DEATH_THRESHOLD, GRADUATION_THRESHOLD } from './utils/constants.js';
+import { supportToColor, TRANSITION_DURATION, DEATH_THRESHOLD, GRADUATION_THRESHOLD } from './utils/colors.js';
 import { renderXAxis, renderYAxis, renderGridlines, renderThresholdLine } from './utils/axes.js';
 
 /**
