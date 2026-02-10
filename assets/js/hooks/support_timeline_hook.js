@@ -2,6 +2,7 @@ import { parseChartData, getChartDimensions } from './utils/chart_data.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
 import { supportToColor } from './utils/colors.js';
 import { TRANSITION_DURATION, DEATH_THRESHOLD, GRADUATION_THRESHOLD } from './utils/constants.js';
+import { renderXAxis, renderYAxis, renderGridlines, renderThresholdLine } from './utils/axes.js';
 
 /**
  * SupportTimelineHook - D3 line chart for support strength over cycles.
@@ -93,12 +94,20 @@ const SupportTimelineHook = {
           .axisBottom(newXScale)
           .ticks(Math.min(data.length, 10))
           .tickFormat(d3.format("d"));
-        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis);
+        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis)
+          .attr("color", "#9ca3af")
+          .selectAll("text")
+          .attr("fill", "#9ca3af")
+          .attr("font-family", "monospace");
       }
 
       if (this.yAxisG) {
         const yAxis = d3.axisLeft(newYScale).ticks(5).tickFormat(d3.format(".0%"));
-        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis);
+        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis)
+          .attr("color", "#9ca3af")
+          .selectAll("text")
+          .attr("fill", "#9ca3af")
+          .attr("font-family", "monospace");
       }
 
       // Animate threshold lines
@@ -149,209 +158,51 @@ const SupportTimelineHook = {
       yScale = newYScale;
 
       // Gridlines - brutalist sharp style
-      const gridColor = "#333333";
-
-      // Y gridlines
-      g.append("g")
-        .attr("class", "grid")
-        .selectAll("line")
-        .data([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-        .enter()
-        .append("line")
-        .attr("x1", 0)
-        .attr("x2", innerWidth)
-        .attr("y1", (d) => yScale(d))
-        .attr("y2", (d) => yScale(d))
-        .attr("stroke", gridColor)
-        .attr("stroke-width", 1);
+      renderGridlines(g, yScale, {
+        orientation: 'horizontal',
+        values: [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        innerWidth
+      });
 
       // Death threshold line (0.2) - red
-      this.deathThreshold = g.append("line")
-        .attr("x1", 0)
-        .attr("x2", innerWidth)
-        .attr("y1", yScale(DEATH_THRESHOLD))
-        .attr("y2", yScale(DEATH_THRESHOLD))
-        .attr("stroke", "#ef4444")
-        .attr("stroke-width", 2)
-        .attr("stroke-dasharray", "5,5");
-
-      // Death threshold label
-      this.deathLabel = g.append("text")
-        .attr("x", innerWidth + 5)
-        .attr("y", yScale(DEATH_THRESHOLD))
-        .attr("dy", "0.35em")
-        .attr("fill", "#ef4444")
-        .attr("font-size", "10px")
-        .attr("font-family", "monospace")
-        .text("DEATH");
+      const deathThreshold = renderThresholdLine(g, yScale, DEATH_THRESHOLD, {
+        label: "DEATH",
+        color: "#ef4444",
+        strokeWidth: 2,
+        dashArray: "5,5",
+        innerWidth
+      });
+      this.deathThreshold = deathThreshold.line;
+      this.deathLabel = deathThreshold.label;
 
       // Graduation threshold line (0.85) - blue
-      this.gradThreshold = g.append("line")
-        .attr("x1", 0)
-        .attr("x2", innerWidth)
-        .attr("y1", yScale(GRADUATION_THRESHOLD))
-        .attr("y2", yScale(GRADUATION_THRESHOLD))
-        .attr("stroke", "#3b82f6")
-        .attr("stroke-width", 2)
-        .attr("stroke-dasharray", "5,5");
-
-      // Graduation threshold label
-      this.gradLabel = g.append("text")
-        .attr("x", innerWidth + 5)
-        .attr("y", yScale(GRADUATION_THRESHOLD))
-        .attr("dy", "0.35em")
-        .attr("fill", "#3b82f6")
-        .attr("font-size", "10px")
-        .attr("font-family", "monospace")
-        .text("GRAD");
+      const gradThreshold = renderThresholdLine(g, yScale, GRADUATION_THRESHOLD, {
+        label: "GRAD",
+        color: "#3b82f6",
+        strokeWidth: 2,
+        dashArray: "5,5",
+        innerWidth
+      });
+      this.gradThreshold = gradThreshold.line;
+      this.gradLabel = gradThreshold.label;
 
       // X axis
-      const xAxis = d3
-        .axisBottom(xScale)
-        .ticks(Math.min(data.length, 10))
-        .tickFormat(d3.format("d"));
-
-      this.xAxisG = g.append("g")
-        .attr("transform", `translate(0,${innerHeight})`)
-        .call(xAxis)
-        .attr("color", "#9ca3af")
-        .selectAll("text")
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace");
-
-      // X axis label
-      g.append("text")
-        .attr("x", innerWidth / 2)
-        .attr("y", innerHeight + 35)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#6b7280")
-        .attr("font-size", "12px")
-        .attr("font-family", "monospace")
-        .text("CYCLE");
+      this.xAxisG = renderXAxis(g, xScale, {
+        tickCount: Math.min(data.length, 10),
+        tickFormat: d3.format("d"),
+        innerHeight,
+        innerWidth,
+        label: "CYCLE"
+      });
 
       // Y axis
-      const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".0%"));
-
-      this.yAxisG = g.append("g")
-        .call(yAxis)
-        .attr("color", "#9ca3af")
-        .selectAll("text")
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace");
-
-      // Y axis label
-      g.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("x", -innerHeight / 2)
-        .attr("y", -40)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#6b7280")
-        .attr("font-size", "12px")
-        .attr("font-family", "monospace")
-        .text("SUPPORT");
+      this.yAxisG = renderYAxis(g, yScale, {
+        tickCount: 5,
+        tickFormat: d3.format(".0%"),
+        innerHeight,
+        label: "SUPPORT"
+      });
     }
-
-    // Gridlines - brutalist sharp style
-    const gridColor = "#333333";
-
-    // Y gridlines
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-      .enter()
-      .append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", (d) => yScale(d))
-      .attr("y2", (d) => yScale(d))
-      .attr("stroke", gridColor)
-      .attr("stroke-width", 1);
-
-    // Death threshold line (0.2) - red
-    g.append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", yScale(DEATH_THRESHOLD))
-      .attr("y2", yScale(DEATH_THRESHOLD))
-      .attr("stroke", "#ef4444")
-      .attr("stroke-width", 2)
-      .attr("stroke-dasharray", "5,5");
-
-    // Death threshold label
-    g.append("text")
-      .attr("x", innerWidth + 5)
-      .attr("y", yScale(DEATH_THRESHOLD))
-      .attr("dy", "0.35em")
-      .attr("fill", "#ef4444")
-      .attr("font-size", "10px")
-      .attr("font-family", "monospace")
-      .text("DEATH");
-
-    // Graduation threshold line (0.85) - blue
-    g.append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", yScale(GRADUATION_THRESHOLD))
-      .attr("y2", yScale(GRADUATION_THRESHOLD))
-      .attr("stroke", "#3b82f6")
-      .attr("stroke-width", 2)
-      .attr("stroke-dasharray", "5,5");
-
-    // Graduation threshold label
-    g.append("text")
-      .attr("x", innerWidth + 5)
-      .attr("y", yScale(GRADUATION_THRESHOLD))
-      .attr("dy", "0.35em")
-      .attr("fill", "#3b82f6")
-      .attr("font-size", "10px")
-      .attr("font-family", "monospace")
-      .text("GRAD");
-
-    // X axis
-    const xAxis = d3
-      .axisBottom(xScale)
-      .ticks(Math.min(data.length, 10))
-      .tickFormat(d3.format("d"));
-
-    g.append("g")
-      .attr("transform", `translate(0,${innerHeight})`)
-      .call(xAxis)
-      .attr("color", "#9ca3af")
-      .selectAll("text")
-      .attr("fill", "#9ca3af")
-      .attr("font-family", "monospace");
-
-    // X axis label
-    g.append("text")
-      .attr("x", innerWidth / 2)
-      .attr("y", innerHeight + 35)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#6b7280")
-      .attr("font-size", "12px")
-      .attr("font-family", "monospace")
-      .text("CYCLE");
-
-    // Y axis
-    const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".0%"));
-
-    g.append("g")
-      .call(yAxis)
-      .attr("color", "#9ca3af")
-      .selectAll("text")
-      .attr("fill", "#9ca3af")
-      .attr("font-family", "monospace");
-
-    // Y axis label
-    g.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -innerHeight / 2)
-      .attr("y", -40)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#6b7280")
-      .attr("font-size", "12px")
-      .attr("font-family", "monospace")
-      .text("SUPPORT");
 
     // Line generator
     const line = d3

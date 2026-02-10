@@ -2,6 +2,7 @@ import { parseChartData, getChartDimensions } from './utils/chart_data.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
 import { TRANSITION_DURATION } from './utils/constants.js';
 import { renderLegend } from './utils/legend.js';
+import { renderXAxis, renderYAxis, renderGridlines } from './utils/axes.js';
 
 /**
  * TrajectoryPlotHook - D3 2D scatter plot for embedding space trajectory.
@@ -137,12 +138,20 @@ const TrajectoryPlotHook = {
       // Animate axis rescaling
       if (this.xAxisG) {
         const xAxis = d3.axisBottom(newXScale).ticks(5);
-        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis);
+        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis)
+          .attr("color", "#9ca3af")
+          .selectAll("text")
+          .attr("fill", "#9ca3af")
+          .attr("font-family", "monospace");
       }
 
       if (this.yAxisG) {
         const yAxis = d3.axisLeft(newYScale).ticks(5);
-        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis);
+        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis)
+          .attr("color", "#9ca3af")
+          .selectAll("text")
+          .attr("fill", "#9ca3af")
+          .attr("font-family", "monospace");
       }
 
       xScale = newXScale;
@@ -169,37 +178,17 @@ const TrajectoryPlotHook = {
       colorScale = newColorScale;
 
       // Gridlines - brutalist sharp style
-      const gridColor = "#333333";
+      this.gridX = renderGridlines(g, xScale, {
+        orientation: 'vertical',
+        tickCount: 5,
+        innerHeight
+      });
 
-      // X gridlines
-      const xTicks = xScale.ticks(5);
-      this.gridX = g.append("g")
-        .attr("class", "grid-x")
-        .selectAll("line")
-        .data(xTicks)
-        .enter()
-        .append("line")
-        .attr("x1", (d) => xScale(d))
-        .attr("x2", (d) => xScale(d))
-        .attr("y1", 0)
-        .attr("y2", innerHeight)
-        .attr("stroke", gridColor)
-        .attr("stroke-width", 1);
-
-      // Y gridlines
-      const yTicks = yScale.ticks(5);
-      this.gridY = g.append("g")
-        .attr("class", "grid-y")
-        .selectAll("line")
-        .data(yTicks)
-        .enter()
-        .append("line")
-        .attr("x1", 0)
-        .attr("x2", innerWidth)
-        .attr("y1", (d) => yScale(d))
-        .attr("y2", (d) => yScale(d))
-        .attr("stroke", gridColor)
-        .attr("stroke-width", 1);
+      this.gridY = renderGridlines(g, yScale, {
+        orientation: 'horizontal',
+        tickCount: 5,
+        innerWidth
+      });
 
     // Draw trajectory line connecting points (only if more than 1 point)
     if (sortedData.length > 1) {
@@ -324,46 +313,21 @@ const TrajectoryPlotHook = {
 
     if (!isUpdate) {
       // X axis (only create on initial render)
-      const xAxis = d3.axisBottom(xScale).ticks(5);
-
-      this.xAxisG = g.append("g")
-        .attr("transform", `translate(0,${innerHeight})`)
-        .call(xAxis)
-        .attr("color", "#9ca3af")
-        .selectAll("text")
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace");
-
-      // X axis label
-      g.append("text")
-        .attr("x", innerWidth / 2)
-        .attr("y", innerHeight + 40)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#6b7280")
-        .attr("font-size", "12px")
-        .attr("font-family", "monospace")
-        .text("PC1");
+      this.xAxisG = renderXAxis(g, xScale, {
+        tickCount: 5,
+        innerHeight,
+        innerWidth,
+        label: "PC1",
+        labelOffset: 40
+      });
 
       // Y axis (only create on initial render)
-      const yAxis = d3.axisLeft(yScale).ticks(5);
-
-      this.yAxisG = g.append("g")
-        .call(yAxis)
-        .attr("color", "#9ca3af")
-        .selectAll("text")
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace");
-
-      // Y axis label
-      g.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("x", -innerHeight / 2)
-        .attr("y", -45)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#6b7280")
-        .attr("font-size", "12px")
-        .attr("font-family", "monospace")
-        .text("PC2");
+      this.yAxisG = renderYAxis(g, yScale, {
+        tickCount: 5,
+        innerHeight,
+        label: "PC2",
+        labelOffset: 45
+      });
 
       // Legend for cycle gradient - positioned below chart
       const legendWidth = 100;
