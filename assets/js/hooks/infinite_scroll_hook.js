@@ -13,7 +13,6 @@
 
 export const InfiniteScrollHook = {
   mounted() {
-    this.el.addEventListener("scroll", this.handleScroll.bind(this));
     this.loaded = false;
     this.loading = false;
     this.observer = new IntersectionObserver(

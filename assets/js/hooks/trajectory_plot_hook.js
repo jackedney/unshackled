@@ -78,11 +78,10 @@ const TrajectoryPlotHook = {
       svg = this.svg;
       g = this.g;
 
-      const updateGrid = (grid, scale, ticks, attr) => grid?.selectAll("line").data(ticks).transition().duration(TRANSITION_DURATION).attr(`x${attr}`, d => scale(d));
-      updateGrid(this.gridX, newXScale, newXScale.ticks(5), '1');
-      updateGrid(this.gridX, newXScale, newXScale.ticks(5), '2');
-      updateGrid(this.gridY, newYScale, newYScale.ticks(5), '1');
-      updateGrid(this.gridY, newYScale, newYScale.ticks(5), '2');
+      const updateGridX = (grid, scale, ticks) => grid?.selectAll("line").data(ticks).transition().duration(TRANSITION_DURATION).attr("x1", d => scale(d)).attr("x2", d => scale(d));
+      const updateGridY = (grid, scale, ticks) => grid?.selectAll("line").data(ticks).transition().duration(TRANSITION_DURATION).attr("y1", d => scale(d)).attr("y2", d => scale(d));
+      updateGridX(this.gridX, newXScale, newXScale.ticks(5));
+      updateGridY(this.gridY, newYScale, newYScale.ticks(5));
       if (this.xAxisG) {
         const xAxis = d3.axisBottom(newXScale).ticks(5);
         this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis).attr("color", "#9ca3af").selectAll("text").call(applyTextStyle);

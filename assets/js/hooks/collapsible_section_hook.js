@@ -30,18 +30,6 @@ export const CollapsibleSectionHook = {
     } catch (error) {
       console.warn(`CollapsibleSectionHook: sessionStorage unavailable for section ${sectionId}`, error);
     }
-  },
-
-  updateSection(isExpanded, content, icon, button) {
-    if (isExpanded) {
-      content.style.display = 'block';
-      icon.style.transform = 'rotate(90deg)';
-      button.setAttribute('aria-expanded', 'true');
-    } else {
-      content.style.display = 'none';
-      icon.style.transform = 'rotate(0deg)';
-      button.setAttribute('aria-expanded', 'false');
-    }
   }
 };
 

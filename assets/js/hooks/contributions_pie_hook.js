@@ -1,6 +1,5 @@
-import { parseChartData, getChartDimensions } from './utils/chart_dom.js';
-import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
-import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
+import { parseChartData, getChartDimensions, cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
+import { getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';
 
 const ContributionsPieHook = {
@@ -76,8 +75,9 @@ const ContributionsPieHook = {
     const segments = pieGroup.selectAll(".segment").data(pieData, d => d.data.role);
     segments.exit().remove();
 
-    const segmentsEnter = segments.enter().append("g").attr("class", "segment")
-      .append("path")
+    const segmentsEnter = segments.enter().append("g").attr("class", "segment");
+
+    segmentsEnter.append("path")
       .attr("d", arc)
       .attr("fill", d => d.data.color || getRoleColor(d.data.role))
       .attr("stroke", "#0a0a0a")
@@ -85,13 +85,13 @@ const ContributionsPieHook = {
       .style("cursor", "pointer");
 
     if (isUpdate) {
-      segmentsEnter.attr("opacity", 0).transition().duration(300).attr("opacity", 1);
+      segmentsEnter.select("path").attr("opacity", 0).transition().duration(300).attr("opacity", 1);
     }
 
     const segmentsMerge = segmentsEnter.merge(segments);
 
     if (isUpdate) {
-      segmentsMerge.transition().duration(300).attr("d", arc).attr("fill", d => d.data.color || getRoleColor(d.data.role));
+      segmentsMerge.select("path").transition().duration(300).attr("d", arc).attr("fill", d => d.data.color || getRoleColor(d.data.role));
     }
 
     if (!this.tooltip) this.tooltip = createTooltip("contributions-pie-tooltip");
