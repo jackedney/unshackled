@@ -1,4 +1,5 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { supportToColorGradient } from './utils/colors.js';
 
 /**
  * Trajectory3DPlotHook - Plotly.js 3D scatter plot for embedding space trajectory.
@@ -40,25 +41,6 @@ const Trajectory3DPlotHook = {
       height: 400,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
-  },
-
-  supportToColor(support) {
-    // Map support (0-1) to color gradient: red (low) -> yellow (mid) -> green (high)
-    if (support <= 0.5) {
-      // Red to yellow
-      const t = support * 2;
-      const r = 255;
-      const g = Math.round(255 * t);
-      const b = 0;
-      return `rgb(${r},${g},${b})`;
-    } else {
-      // Yellow to green
-      const t = (support - 0.5) * 2;
-      const r = Math.round(255 * (1 - t));
-      const g = 255;
-      const b = 0;
-      return `rgb(${r},${g},${b})`;
-    }
   },
 
   cycleToSize(cycle, maxCycle) {
@@ -129,7 +111,7 @@ const Trajectory3DPlotHook = {
         hoverinfo: "text",
         marker: {
           size: activePoints.map((p) => this.cycleToSize(p.cycle, maxCycle)),
-          color: activePoints.map((p) => this.supportToColor(p.support)),
+          color: activePoints.map((p) => supportToColorGradient(p.support)),
           symbol: "circle",
           line: {
             color: "#ffffff",
@@ -206,7 +188,7 @@ const Trajectory3DPlotHook = {
         hoverinfo: "text",
         marker: {
           size: 18,
-          color: this.supportToColor(currentPoint.support),
+          color: supportToColorGradient(currentPoint.support),
           symbol: "diamond",
           line: {
             color: "#ffffff",

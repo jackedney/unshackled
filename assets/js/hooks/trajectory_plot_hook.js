@@ -1,4 +1,6 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { TRANSITION_DURATION } from './utils/constants.js';
 
 /**
  * TrajectoryPlotHook - D3 2D scatter plot for embedding space trajectory.
@@ -43,7 +45,7 @@ const TrajectoryPlotHook = {
   },
 
   cleanup() {
-    d3.select(this.el).selectAll("svg").remove();
+    cleanupSvg(this.el);
   },
 
   renderChart() {
@@ -116,7 +118,7 @@ const TrajectoryPlotHook = {
         this.gridX.selectAll("line")
           .data(xTicks)
           .transition()
-          .duration(300)
+          .duration(TRANSITION_DURATION)
           .attr("x1", (d) => newXScale(d))
           .attr("x2", (d) => newXScale(d));
       }
@@ -126,7 +128,7 @@ const TrajectoryPlotHook = {
         this.gridY.selectAll("line")
           .data(yTicks)
           .transition()
-          .duration(300)
+          .duration(TRANSITION_DURATION)
           .attr("y1", (d) => newYScale(d))
           .attr("y2", (d) => newYScale(d));
       }
@@ -134,12 +136,12 @@ const TrajectoryPlotHook = {
       // Animate axis rescaling
       if (this.xAxisG) {
         const xAxis = d3.axisBottom(newXScale).ticks(5);
-        this.xAxisG.transition().duration(300).call(xAxis);
+        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis);
       }
 
       if (this.yAxisG) {
         const yAxis = d3.axisLeft(newYScale).ticks(5);
-        this.yAxisG.transition().duration(300).call(yAxis);
+        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis);
       }
 
       xScale = newXScale;
@@ -208,7 +210,7 @@ const TrajectoryPlotHook = {
 
       if (isUpdate && this.trajectoryLine) {
         // Animate line extension
-        this.trajectoryLine.datum(sortedData).transition().duration(300).attr("d", line);
+        this.trajectoryLine.datum(sortedData).transition().duration(TRANSITION_DURATION).attr("d", line);
       } else {
         this.trajectoryLine = g.append("path")
           .datum(sortedData)
@@ -226,20 +228,7 @@ const TrajectoryPlotHook = {
 
     // Create or update tooltip
     if (!this.tooltip) {
-      this.tooltip = d3
-        .select("body")
-        .append("div")
-        .attr("class", "trajectory-plot-tooltip")
-        .style("position", "absolute")
-        .style("padding", "8px 12px")
-        .style("background", "#1a1a1a")
-        .style("border", "2px solid #ffffff")
-        .style("color", "#ffffff")
-        .style("font-family", "monospace")
-        .style("font-size", "12px")
-        .style("pointer-events", "none")
-        .style("opacity", 0)
-        .style("z-index", 1000);
+      this.tooltip = createTooltip("trajectory-plot-tooltip");
     }
     const tooltip = this.tooltip;
 
@@ -268,7 +257,7 @@ const TrajectoryPlotHook = {
       pointsEnter
         .attr("opacity", 0)
         .transition()
-        .duration(300)
+        .duration(TRANSITION_DURATION)
         .attr("opacity", 1);
     }
 
@@ -278,7 +267,7 @@ const TrajectoryPlotHook = {
     if (isUpdate) {
       this.points
         .transition()
-        .duration(300)
+        .duration(TRANSITION_DURATION)
         .attr("cx", (d) => xScale(d.x))
         .attr("cy", (d) => yScale(d.y))
         .attr("fill", (d) => colorScale(d.cycle))
@@ -295,15 +284,12 @@ const TrajectoryPlotHook = {
           .attr("r", d3.select(this).attr("r") * 1.5);
 
         const supportPct = d.support ? (d.support * 100).toFixed(1) + "%" : "N/A";
-        tooltip
-          .style("opacity", 1)
-          .html(
-            `<span class="font-bold">Cycle ${d.cycle}</span><br>` +
-              `Support: ${supportPct}<br>` +
-              (d.claim ? `<span class="text-gray-400">${d.claim.substring(0, 50)}${d.claim.length > 50 ? "..." : ""}</span>` : "")
-          )
-          .style("left", event.pageX + 10 + "px")
-          .style("top", event.pageY - 10 + "px");
+        const html = `
+          <span class="font-bold">Cycle ${d.cycle}</span><br>
+          Support: ${supportPct}<br>
+          ${d.claim ? `<span class="text-gray-400">${d.claim.substring(0, 50)}${d.claim.length > 50 ? "..." : ""}</span>` : ""}
+        `;
+        showTooltip(tooltip, html, event);
       })
       .on("mouseleave", function (event, d) {
         const isLast = d.cycle === sortedData[sortedData.length - 1].cycle;
@@ -312,7 +298,7 @@ const TrajectoryPlotHook = {
           .duration(100)
           .attr("r", isLast ? 8 : 5);
 
-        tooltip.style("opacity", 0);
+        hideTooltip(tooltip);
       });
 
     // Mark current position with outer ring
@@ -321,7 +307,7 @@ const TrajectoryPlotHook = {
       if (isUpdate && this.currentPointMarker) {
         this.currentPointMarker
           .transition()
-          .duration(300)
+          .duration(TRANSITION_DURATION)
           .attr("cx", xScale(lastPoint.x))
           .attr("cy", yScale(lastPoint.y));
       } else {

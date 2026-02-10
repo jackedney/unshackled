@@ -1,3 +1,5 @@
+import { FLASH_DISMISS_MS } from './utils/constants.js';
+
 /**
  * FlashHook - Auto-dismisses info flash messages after 4 seconds
  *
@@ -15,6 +17,6 @@ export const FlashHook = {
       if (closeButton) {
         closeButton.click();
       }
-    }, 4000);
+    }, FLASH_DISMISS_MS);
   }
 };

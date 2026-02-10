@@ -1,4 +1,7 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { supportToColor } from './utils/colors.js';
+import { TRANSITION_DURATION, DEATH_THRESHOLD, GRADUATION_THRESHOLD } from './utils/constants.js';
 
 /**
  * SupportTimelineHook - D3 line chart for support strength over cycles.
@@ -57,7 +60,7 @@ const SupportTimelineHook = {
   },
 
   cleanup() {
-    d3.select(this.el).selectAll("svg").remove();
+    cleanupSvg(this.el);
   },
 
   renderChart() {
@@ -90,25 +93,25 @@ const SupportTimelineHook = {
           .axisBottom(newXScale)
           .ticks(Math.min(data.length, 10))
           .tickFormat(d3.format("d"));
-        this.xAxisG.transition().duration(300).call(xAxis);
+        this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis);
       }
 
       if (this.yAxisG) {
         const yAxis = d3.axisLeft(newYScale).ticks(5).tickFormat(d3.format(".0%"));
-        this.yAxisG.transition().duration(300).call(yAxis);
+        this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis);
       }
 
       // Animate threshold lines
       if (this.deathThreshold) {
-        this.deathThreshold.transition().duration(300).attr("y1", newYScale(0.2)).attr("y2", newYScale(0.2));
+        this.deathThreshold.transition().duration(TRANSITION_DURATION).attr("y1", newYScale(DEATH_THRESHOLD)).attr("y2", newYScale(DEATH_THRESHOLD));
         if (this.deathLabel) {
-          this.deathLabel.transition().duration(300).attr("y", newYScale(0.2));
+          this.deathLabel.transition().duration(TRANSITION_DURATION).attr("y", newYScale(DEATH_THRESHOLD));
         }
       }
       if (this.gradThreshold) {
-        this.gradThreshold.transition().duration(300).attr("y1", newYScale(0.85)).attr("y2", newYScale(0.85));
+        this.gradThreshold.transition().duration(TRANSITION_DURATION).attr("y1", newYScale(GRADUATION_THRESHOLD)).attr("y2", newYScale(GRADUATION_THRESHOLD));
         if (this.gradLabel) {
-          this.gradLabel.transition().duration(300).attr("y", newYScale(0.85));
+          this.gradLabel.transition().duration(TRANSITION_DURATION).attr("y", newYScale(GRADUATION_THRESHOLD));
         }
       }
 
@@ -166,8 +169,8 @@ const SupportTimelineHook = {
       this.deathThreshold = g.append("line")
         .attr("x1", 0)
         .attr("x2", innerWidth)
-        .attr("y1", yScale(0.2))
-        .attr("y2", yScale(0.2))
+        .attr("y1", yScale(DEATH_THRESHOLD))
+        .attr("y2", yScale(DEATH_THRESHOLD))
         .attr("stroke", "#ef4444")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
@@ -175,7 +178,7 @@ const SupportTimelineHook = {
       // Death threshold label
       this.deathLabel = g.append("text")
         .attr("x", innerWidth + 5)
-        .attr("y", yScale(0.2))
+        .attr("y", yScale(DEATH_THRESHOLD))
         .attr("dy", "0.35em")
         .attr("fill", "#ef4444")
         .attr("font-size", "10px")
@@ -186,8 +189,8 @@ const SupportTimelineHook = {
       this.gradThreshold = g.append("line")
         .attr("x1", 0)
         .attr("x2", innerWidth)
-        .attr("y1", yScale(0.85))
-        .attr("y2", yScale(0.85))
+        .attr("y1", yScale(GRADUATION_THRESHOLD))
+        .attr("y2", yScale(GRADUATION_THRESHOLD))
         .attr("stroke", "#3b82f6")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
@@ -195,7 +198,7 @@ const SupportTimelineHook = {
       // Graduation threshold label
       this.gradLabel = g.append("text")
         .attr("x", innerWidth + 5)
-        .attr("y", yScale(0.85))
+        .attr("y", yScale(GRADUATION_THRESHOLD))
         .attr("dy", "0.35em")
         .attr("fill", "#3b82f6")
         .attr("font-size", "10px")
@@ -269,8 +272,8 @@ const SupportTimelineHook = {
     g.append("line")
       .attr("x1", 0)
       .attr("x2", innerWidth)
-      .attr("y1", yScale(0.2))
-      .attr("y2", yScale(0.2))
+      .attr("y1", yScale(DEATH_THRESHOLD))
+      .attr("y2", yScale(DEATH_THRESHOLD))
       .attr("stroke", "#ef4444")
       .attr("stroke-width", 2)
       .attr("stroke-dasharray", "5,5");
@@ -278,7 +281,7 @@ const SupportTimelineHook = {
     // Death threshold label
     g.append("text")
       .attr("x", innerWidth + 5)
-      .attr("y", yScale(0.2))
+      .attr("y", yScale(DEATH_THRESHOLD))
       .attr("dy", "0.35em")
       .attr("fill", "#ef4444")
       .attr("font-size", "10px")
@@ -289,8 +292,8 @@ const SupportTimelineHook = {
     g.append("line")
       .attr("x1", 0)
       .attr("x2", innerWidth)
-      .attr("y1", yScale(0.85))
-      .attr("y2", yScale(0.85))
+      .attr("y1", yScale(GRADUATION_THRESHOLD))
+      .attr("y2", yScale(GRADUATION_THRESHOLD))
       .attr("stroke", "#3b82f6")
       .attr("stroke-width", 2)
       .attr("stroke-dasharray", "5,5");
@@ -298,7 +301,7 @@ const SupportTimelineHook = {
     // Graduation threshold label
     g.append("text")
       .attr("x", innerWidth + 5)
-      .attr("y", yScale(0.85))
+      .attr("y", yScale(GRADUATION_THRESHOLD))
       .attr("dy", "0.35em")
       .attr("fill", "#3b82f6")
       .attr("font-size", "10px")
@@ -389,7 +392,7 @@ const SupportTimelineHook = {
       .attr("cx", (d) => xScale(d.cycle))
       .attr("cy", (d) => yScale(d.support))
       .attr("r", 4)
-      .attr("fill", (d) => this.getSupportColor(d.support))
+      .attr("fill", (d) => supportToColor(d.support))
       .attr("stroke", "#ffffff")
       .attr("stroke-width", 1);
 
@@ -398,7 +401,7 @@ const SupportTimelineHook = {
       pointsEnter
         .attr("opacity", 0)
         .transition()
-        .duration(300)
+        .duration(TRANSITION_DURATION)
         .attr("opacity", 1);
     }
 
@@ -408,7 +411,7 @@ const SupportTimelineHook = {
     if (isUpdate) {
       this.points
         .transition()
-        .duration(300)
+        .duration(TRANSITION_DURATION)
         .attr("cx", (d) => xScale(d.cycle))
         .attr("cy", (d) => yScale(d.support));
     }
@@ -419,7 +422,7 @@ const SupportTimelineHook = {
       if (isUpdate && this.currentPointMarker) {
         this.currentPointMarker
           .transition()
-          .duration(300)
+          .duration(TRANSITION_DURATION)
           .attr("cx", xScale(lastPoint.cycle))
           .attr("cy", yScale(lastPoint.support));
       } else {
@@ -443,13 +446,6 @@ const SupportTimelineHook = {
     this.svg = svg;
     this.g = g;
     this.isInitialRender = false;
-  },
-
-  getSupportColor(support) {
-    if (support >= 0.85) return "#3b82f6"; // Blue for graduation
-    if (support >= 0.5) return "#22c55e"; // Green for healthy
-    if (support >= 0.2) return "#eab308"; // Yellow for warning
-    return "#ef4444"; // Red for danger
   },
 
   renderClaimMarkers(g, claim_transitions, xScale, yScale, innerHeight, isUpdate) {
@@ -504,6 +500,16 @@ const SupportTimelineHook = {
   },
 
   renderTooltips(points, data, xScale, yScale) {
+    const tooltipStyleOverrides = {
+      background: "#1f2937",
+      border: "1px solid #4b5563",
+      "border-radius": "4px",
+      "font-size": "11px",
+      color: "#e5e7eb",
+      "max-width": "300px",
+      "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.3)"
+    };
+
     if (!points || this.tooltip) {
       if (this.tooltip) {
         this.tooltip.remove();
@@ -513,36 +519,19 @@ const SupportTimelineHook = {
 
     points.on("mouseover", (event, d) => {
       const claimText = d.claim_text || "No claim text available";
-      
-      this.tooltip = d3.select("body")
-        .append("div")
-        .attr("class", "support-timeline-tooltip")
-        .style("position", "absolute")
-        .style("background", "#1f2937")
-        .style("border", "1px solid #4b5563")
-        .style("padding", "8px 12px")
-        .style("border-radius", "4px")
-        .style("font-family", "monospace")
-        .style("font-size", "11px")
-        .style("color", "#e5e7eb")
-        .style("max-width", "300px")
-        .style("z-index", "1000")
-        .style("pointer-events", "none")
-        .style("box-shadow", "0 4px 6px rgba(0, 0, 0, 0.3)");
 
-      this.tooltip.append("div")
-        .style("font-weight", "bold")
-        .style("margin-bottom", "4px")
-        .text(`Cycle ${d.cycle}`);
+      if (!this.tooltip) {
+        this.tooltip = createTooltip("support-timeline-tooltip", tooltipStyleOverrides);
+      }
 
-      this.tooltip.append("div")
-        .style("margin-bottom", "4px")
-        .text(`Support: ${(d.support * 100).toFixed(1)}%`);
+      const truncatedText = claimText.length > 150 ? claimText.substring(0, 150) + "..." : claimText;
+      const html = `
+        <div style="font-weight: bold; margin-bottom: 4px;">Cycle ${d.cycle}</div>
+        <div style="margin-bottom: 4px;">Support: ${(d.support * 100).toFixed(1)}%</div>
+        <div style="font-size: 10px; color: #9ca3af;">${truncatedText}</div>
+      `;
 
-      this.tooltip.append("div")
-        .style("font-size", "10px")
-        .style("color", "#9ca3af")
-        .text(claimText.length > 150 ? claimText.substring(0, 150) + "..." : claimText);
+      showTooltip(this.tooltip, html, event);
     })
     .on("mousemove", (event) => {
       if (this.tooltip) {
@@ -553,8 +542,7 @@ const SupportTimelineHook = {
     })
     .on("mouseout", () => {
       if (this.tooltip) {
-        this.tooltip.remove();
-        this.tooltip = null;
+        hideTooltip(this.tooltip);
       }
     });
   },

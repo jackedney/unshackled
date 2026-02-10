@@ -1,4 +1,6 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 
 /**
  * ContributionsPieHook - D3 pie/donut chart for agent contributions.
@@ -39,29 +41,10 @@ const ContributionsPieHook = {
     });
   },
 
-  // Agent role color palette - high contrast brutalist colors
-  roleColors: {
-    explorer: "#22c55e", // Green
-    critic: "#ef4444", // Red
-    connector: "#3b82f6", // Blue
-    steelman: "#eab308", // Yellow
-    operationalizer: "#f97316", // Orange
-    quantifier: "#8b5cf6", // Purple
-    reducer: "#06b6d4", // Cyan
-    boundary_hunter: "#ec4899", // Pink
-    translator: "#14b8a6", // Teal
-    historian: "#a855f7", // Violet
-    grave_keeper: "#6b7280", // Gray
-    cartographer: "#f59e0b", // Amber
-    perturber: "#dc2626", // Red-600
-  },
 
-  getColor(role) {
-    return this.roleColors[role] || "#ffffff";
-  },
 
   cleanup() {
-    d3.select(this.el).selectAll("svg").remove();
+    cleanupSvg(this.el);
   },
 
   renderChart() {
@@ -155,10 +138,10 @@ const ContributionsPieHook = {
       .append("g")
       .attr("class", "segment");
 
-    segmentsEnter
+      segmentsEnter
       .append("path")
       .attr("d", arc)
-      .attr("fill", (d) => d.data.color || this.getColor(d.data.role))
+      .attr("fill", (d) => d.data.color || getRoleColor(d.data.role))
       .attr("stroke", "#0a0a0a")
       .attr("stroke-width", 2)
       .style("cursor", "pointer");
@@ -180,49 +163,31 @@ const ContributionsPieHook = {
         .transition()
         .duration(300)
         .attr("d", arc)
-        .attr("fill", (d) => d.data.color || this.getColor(d.data.role));
+        .attr("fill", (d) => d.data.color || getRoleColor(d.data.role));
     }
+
+    // Create or update tooltip
+    if (!this.tooltip) {
+      this.tooltip = createTooltip("contributions-pie-tooltip");
+    }
+    const tooltip = this.tooltip;
 
     // Setup event handlers for segments
     segmentsMerge
       .on("mouseenter", function (event, d) {
         d3.select(this).select("path").transition().duration(100).attr("d", arcHover);
 
-        // Show tooltip
-        tooltip
-          .style("opacity", 1)
-          .html(
-            `<span class="font-bold">${formatRole(d.data.role)}</span><br>${d.data.count} contributions`
-          )
-          .style("left", event.pageX + 10 + "px")
-          .style("top", event.pageY - 10 + "px");
+        showTooltip(
+          tooltip,
+          `<span class="font-bold">${formatRole(d.data.role)}</span><br>${d.data.count} contributions`,
+          event
+        );
       })
       .on("mouseleave", function () {
         d3.select(this).select("path").transition().duration(100).attr("d", arc);
 
-        tooltip.style("opacity", 0);
+        hideTooltip(tooltip);
       });
-
-    // Create or update tooltip
-    let tooltip;
-    if (!this.tooltip) {
-      tooltip = d3
-        .select("body")
-        .append("div")
-        .attr("class", "contributions-pie-tooltip")
-        .style("position", "absolute")
-        .style("padding", "8px 12px")
-        .style("background", "#1a1a1a")
-        .style("border", "2px solid #ffffff")
-        .style("color", "#ffffff")
-        .style("font-family", "monospace")
-        .style("font-size", "12px")
-        .style("pointer-events", "none")
-        .style("opacity", 0)
-        .style("z-index", 1000);
-      this.tooltip = tooltip;
-    }
-    tooltip = this.tooltip;
 
     // Draw or update center text (total count)
     const totalCount = filteredData.reduce((sum, d) => sum + d.count, 0);
@@ -284,7 +249,7 @@ const ContributionsPieHook = {
         .append("rect")
         .attr("width", 12)
         .attr("height", 12)
-        .attr("fill", (d) => d.color || this.getColor(d.role))
+        .attr("fill", (d) => d.color || getRoleColor(d.role))
         .attr("stroke", "#ffffff")
         .attr("stroke-width", 1);
 
@@ -302,34 +267,6 @@ const ContributionsPieHook = {
     // Store references for updates
     this.svg = svg;
     this.isInitialRender = false;
-
-    // Helper function to format role names
-    function formatRole(role) {
-      return role
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-    }
-
-    function formatRoleShort(role) {
-      // Abbreviate long role names for legend
-      const abbrevs = {
-        explorer: "EXP",
-        critic: "CRT",
-        connector: "CON",
-        steelman: "STL",
-        operationalizer: "OPR",
-        quantifier: "QNT",
-        reducer: "RED",
-        boundary_hunter: "BND",
-        translator: "TRN",
-        historian: "HST",
-        grave_keeper: "GRV",
-        cartographer: "CRT",
-        perturber: "PTB",
-      };
-      return abbrevs[role] || role.substring(0, 3).toUpperCase();
-    }
   },
 };
 
