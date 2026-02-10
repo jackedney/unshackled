@@ -1,6 +1,7 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
 import { TRANSITION_DURATION } from './utils/constants.js';
+import { renderLegend } from './utils/legend.js';
 
 /**
  * TrajectoryPlotHook - D3 2D scatter plot for embedding space trajectory.
@@ -370,54 +371,18 @@ const TrajectoryPlotHook = {
       const legendY = innerHeight + 10;
       const legendX = (innerWidth - legendWidth) / 2;
 
-      // Gradient definition
-      const defs = svg.append("defs");
-      const gradient = defs
-        .append("linearGradient")
-        .attr("id", "trajectory-legend-gradient")
-        .attr("x1", "0%")
-        .attr("x2", "100%");
-
-      gradient.append("stop").attr("offset", "0%").attr("stop-color", "#06b6d4");
-      gradient.append("stop").attr("offset", "100%").attr("stop-color", "#ffffff");
-
-      // Legend rect
-      g.append("rect")
-        .attr("x", legendX)
-        .attr("y", legendY)
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .attr("fill", "url(#trajectory-legend-gradient)")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1);
-
-      // Legend labels
-      g.append("text")
-        .attr("x", legendX)
-        .attr("y", legendY + legendHeight + 12)
-        .attr("fill", "#6b7280")
-        .attr("font-size", "10px")
-        .attr("font-family", "monospace")
-        .text(`C${cycleExtent[0]}`);
-
-      g.append("text")
-        .attr("x", legendX + legendWidth)
-        .attr("y", legendY + legendHeight + 12)
-        .attr("text-anchor", "end")
-        .attr("fill", "#6b7280")
-        .attr("font-size", "10px")
-        .attr("font-family", "monospace")
-        .text(`C${cycleExtent[1]}`);
-
-      // Legend title - below the gradient bar
-      g.append("text")
-        .attr("x", legendX + legendWidth / 2)
-        .attr("y", legendY - 3)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#9ca3af")
-        .attr("font-size", "10px")
-        .attr("font-family", "monospace")
-        .text("CYCLE");
+      renderLegend(g, {
+        startColor: '#06b6d4',
+        endColor: '#ffffff',
+        startLabel: `C${cycleExtent[0]}`,
+        endLabel: `C${cycleExtent[1]}`,
+        title: 'CYCLE',
+      }, {
+        position: { x: legendX, y: legendY },
+        type: 'gradient',
+        gradientSize: { width: legendWidth, height: legendHeight },
+        labelStyle: { fill: '#6b7280', 'font-family': 'monospace', 'font-size': '10px' },
+      });
     }
     }
     

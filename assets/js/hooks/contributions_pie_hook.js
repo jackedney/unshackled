@@ -1,6 +1,7 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
 import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
 import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
+import { renderLegend } from './utils/legend.js';
 
 /**
  * ContributionsPieHook - D3 pie/donut chart for agent contributions.
@@ -220,48 +221,17 @@ const ContributionsPieHook = {
     // Draw legend below chart (only on initial render)
     if (!isUpdate) {
       const legendY = margin.top + pieHeight + 15;
-      const legendGroup = svg
-        .append("g")
-        .attr(
-          "transform",
-          `translate(${margin.left},${legendY})`
-        );
+      const legendItems = filteredData.map((d) => ({
+        label: `${formatRoleShort(d.role)} (${d.count})`,
+        color: d.color || getRoleColor(d.role),
+      }));
 
-      // Calculate legend layout - center items below pie
-      const itemsPerRow = 3;
-      const itemWidth = 100;
-      const itemHeight = 20;
-
-      const legendItems = legendGroup
-        .selectAll(".legend-item")
-        .data(filteredData)
-        .enter()
-        .append("g")
-        .attr("class", "legend-item")
-        .attr("transform", (d, i) => {
-          const row = Math.floor(i / itemsPerRow);
-          const col = i % itemsPerRow;
-          return `translate(${col * itemWidth},${row * itemHeight})`;
-        });
-
-      // Legend color boxes - sharp edges
-      legendItems
-        .append("rect")
-        .attr("width", 12)
-        .attr("height", 12)
-        .attr("fill", (d) => d.color || getRoleColor(d.role))
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1);
-
-      // Legend labels
-      legendItems
-        .append("text")
-        .attr("x", 18)
-        .attr("y", 10)
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace")
-        .attr("font-size", "10px")
-        .text((d) => `${formatRoleShort(d.role)} (${d.count})`);
+      renderLegend(svg, legendItems, {
+        position: { x: margin.left, y: legendY },
+        type: 'grid',
+        maxItemsPerRow: 3,
+        labelStyle: { fill: '#9ca3af', 'font-family': 'monospace', 'font-size': '10px' },
+      });
     }
 
     // Store references for updates
