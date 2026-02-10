@@ -32,23 +32,30 @@ export function formatRole(role) {
     .join(" ");
 }
 
-export function formatRoleShort(role) {
-  const abbrevs = {
-    explorer: "EXP",
-    critic: "CRT",
-    connector: "CON",
-    steelman: "STL",
-    operationalizer: "OPR",
-    quantifier: "QNT",
-    reducer: "RED",
-    boundary_hunter: "BND",
-    translator: "TRN",
-    historian: "HST",
-    grave_keeper: "GRV",
-    cartographer: "CRT",
-    perturber: "PTB",
-  };
-  return abbrevs[role] || role.substring(0, 3).toUpperCase();
+export function formatRoleShort(role, maxLen) {
+  if (maxLen === undefined) {
+    const abbrevs = {
+      explorer: "EXP",
+      critic: "CRT",
+      connector: "CON",
+      steelman: "STL",
+      operationalizer: "OPR",
+      quantifier: "QNT",
+      reducer: "RED",
+      boundary_hunter: "BND",
+      translator: "TRN",
+      historian: "HST",
+      grave_keeper: "GRV",
+      cartographer: "CRT",
+      perturber: "PTB",
+    };
+    return abbrevs[role] || role.substring(0, 3).toUpperCase();
+  }
+  const formatted = formatRole(role);
+  if (formatted.length <= maxLen) {
+    return formatted;
+  }
+  return formatted.substring(0, maxLen - 1) + "…";
 }
 
 function rgbToHex(r, g, b) {
