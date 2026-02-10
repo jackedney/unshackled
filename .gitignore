@@ -38,3 +38,6 @@ Thumbs.db
 
 # Node
 /assets/node_modules/
+
+# Phoenix digest artifacts
+/priv/static/cache_manifest.json

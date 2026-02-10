@@ -45,7 +45,16 @@ const TrajectoryPlotHook = {
     const sortedData = [...data].sort((a, b) => a.cycle - b.cycle);
 
     if (sortedData.length === 0) {
-      if (!isUpdate) d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "trajectory-plot-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No trajectory data yet");
+      d3.select(this.el).selectAll(".trajectory-plot-svg").remove();
+      if (!isUpdate) {
+        d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "trajectory-plot-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No trajectory data yet");
+      }
+      this.svg = null;
+      this.g = null;
+      this.trajectoryLine = null;
+      this.points = null;
+      this.currentPointMarker = null;
+      this.isInitialRender = true;
       return;
     }
 
@@ -171,7 +180,7 @@ const TrajectoryPlotHook = {
 
     this.points.on("mouseenter", function (event, d) {
       d3.select(this).transition().duration(100).attr("r", d3.select(this).attr("r") * 1.5);
-      const supportPct = d.support ? (d.support * 100).toFixed(1) + "%" : "N/A";
+      const supportPct = d.support !== null && d.support !== undefined ? (d.support * 100).toFixed(1) + "%" : "N/A";
       const claimText = d.claim ? escapeHtml(d.claim.substring(0, 50)) + (d.claim.length > 50 ? "..." : "") : "";
       showTooltip(tooltip, `<span class="font-bold">Cycle ${d.cycle}</span><br>Support: ${supportPct}<br>${claimText ? `<span class="text-gray-400">${claimText}</span>` : ""}`, event);
     }).on("mouseleave", function (event, d) {
@@ -206,17 +215,18 @@ const TrajectoryPlotHook = {
         label: "PC2",
         labelOffset: 45
       });
-
-      const legendWidth = 100, legendHeight = 10, legendY = innerHeight + 10, legendX = (innerWidth - legendWidth) / 2;
-      renderLegend(g, {
-        startColor: '#06b6d4', endColor: '#ffffff', startLabel: `C${cycleExtent[0]}`, endLabel: `C${cycleExtent[1]}`, title: 'CYCLE',
-      }, {
-        position: { x: legendX, y: legendY },
-        type: 'gradient',
-        gradientSize: { width: legendWidth, height: legendHeight },
-        labelStyle: { fill: '#6b7280', 'font-family': 'monospace', 'font-size': '10px' },
-      });
     }
+
+    g.selectAll('.legend-group').remove();
+    const legendWidth = 100, legendHeight = 10, legendY = innerHeight + 10, legendX = (innerWidth - legendWidth) / 2;
+    renderLegend(g, {
+      startColor: '#06b6d4', endColor: '#ffffff', startLabel: `C${cycleExtent[0]}`, endLabel: `C${cycleExtent[1]}`, title: 'CYCLE',
+    }, {
+      position: { x: legendX, y: legendY },
+      type: 'gradient',
+      gradientSize: { width: legendWidth, height: legendHeight },
+      labelStyle: { fill: '#6b7280', 'font-family': 'monospace', 'font-size': '10px' },
+    });
 
     // Store references for updates
     this.svg = svg;

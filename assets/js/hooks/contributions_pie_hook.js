@@ -1,4 +1,4 @@
-import { parseChartData, getChartDimensions, cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
+import { parseChartData, getChartDimensions, cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle, escapeHtml } from './utils/chart_dom.js';
 import { getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';
 
@@ -41,7 +41,13 @@ const ContributionsPieHook = {
     const filteredData = data.filter((d) => d.count > 0);
 
     if (filteredData.length === 0) {
-      if (!isUpdate) d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "contributions-pie-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No contributions yet");
+      d3.select(this.el).selectAll(".contributions-pie-svg").remove();
+      if (!isUpdate) {
+        d3.select(this.el).append("svg").attr("width", width).attr("height", height).attr("class", "contributions-pie-svg").append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").call(applyTextStyle, { fill: "#6b7280" }).text("No contributions yet");
+      }
+      this.svg = null;
+      this.pieGroup = null;
+      this.isInitialRender = true;
       return;
     }
 
@@ -99,7 +105,7 @@ const ContributionsPieHook = {
 
     segmentsMerge.on("mouseenter", function (event, d) {
       d3.select(this).select("path").transition().duration(100).attr("d", arcHover);
-      showTooltip(tooltip, `<span class="font-bold">${formatRole(d.data.role)}</span><br>${d.data.count} contributions`, event);
+      showTooltip(tooltip, `<span class="font-bold">${escapeHtml(formatRole(d.data.role))}</span><br>${escapeHtml(String(d.data.count))} contributions`, event);
     }).on("mouseleave", function () {
       d3.select(this).select("path").transition().duration(100).attr("d", arc);
       hideTooltip(tooltip);
@@ -113,15 +119,14 @@ const ContributionsPieHook = {
       pieGroup.select(".center-count").text(totalCount);
     }
 
-    if (!isUpdate) {
-      const legendY = margin.top + pieHeight + 15;
-      renderLegend(svg, filteredData.map(d => ({ label: `${formatRoleShort(d.role)} (${d.count})`, color: d.color || getRoleColor(d.role) })), {
-        position: { x: margin.left, y: legendY },
-        type: 'grid',
-        maxItemsPerRow: 3,
-        labelStyle: { fill: '#9ca3af', 'font-family': 'monospace', 'font-size': '10px' },
-      });
-    }
+    svg.selectAll('.legend-group').remove();
+    const legendY = margin.top + pieHeight + 15;
+    renderLegend(svg, filteredData.map(d => ({ label: `${formatRoleShort(d.role)} (${d.count})`, color: d.color || getRoleColor(d.role) })), {
+      position: { x: margin.left, y: legendY },
+      type: 'grid',
+      maxItemsPerRow: 3,
+      labelStyle: { fill: '#9ca3af', 'font-family': 'monospace', 'font-size': '10px' },
+    });
 
     // Store references for updates
     this.svg = svg;
