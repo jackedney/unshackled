@@ -1,3 +1,5 @@
+import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+
 /**
  * SupportTimelineHook - D3 line chart for support strength over cycles.
  *
@@ -30,44 +32,28 @@ const SupportTimelineHook = {
   },
 
   getData() {
-    const dataAttr = this.el.dataset.chartData;
+    const parsed = parseChartData(this.el, 'chartData', null);
 
-    if (!dataAttr) {
-      console.warn(
-        "SupportTimelineHook: Missing data-chart-data attribute",
-        this.el.id
-      );
+    if (!parsed) {
       return { support_timeline: [], claim_transitions: [] };
     }
 
-    try {
-      const parsed = JSON.parse(dataAttr);
-      
-      if (Array.isArray(parsed)) {
-        return { support_timeline: parsed, claim_transitions: [] };
-      }
-      
-      return {
-        support_timeline: parsed.support_timeline || [],
-        claim_transitions: parsed.claim_transitions || []
-      };
-    } catch (e) {
-      console.warn("SupportTimelineHook: Failed to parse chart data", e);
-      return { support_timeline: [], claim_transitions: [] };
+    if (Array.isArray(parsed)) {
+      return { support_timeline: parsed, claim_transitions: [] };
     }
+
+    return {
+      support_timeline: parsed.support_timeline || [],
+      claim_transitions: parsed.claim_transitions || []
+    };
   },
 
   getConfig() {
-    return {
-      width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 600,
-      height: parseInt(this.el.dataset.chartHeight) || 250,
-      margin: {
-        top: parseInt(this.el.dataset.chartMarginTop) || 20,
-        right: parseInt(this.el.dataset.chartMarginRight) || 30,
-        bottom: parseInt(this.el.dataset.chartMarginBottom) || 40,
-        left: parseInt(this.el.dataset.chartMarginLeft) || 50,
-      },
-    };
+    return getChartDimensions(this.el, {
+      width: 600,
+      height: 250,
+      margin: { top: 20, right: 30, bottom: 40, left: 50 }
+    });
   },
 
   cleanup() {

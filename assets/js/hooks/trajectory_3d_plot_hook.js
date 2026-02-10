@@ -1,3 +1,5 @@
+import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+
 /**
  * Trajectory3DPlotHook - Plotly.js 3D scatter plot for embedding space trajectory.
  *
@@ -29,29 +31,15 @@ const Trajectory3DPlotHook = {
   },
 
   getData() {
-    const dataAttr = this.el.dataset.chartData;
-
-    if (!dataAttr) {
-      console.warn(
-        "Trajectory3DPlotHook: Missing data-chart-data attribute",
-        this.el.id
-      );
-      return { points: [] };
-    }
-
-    try {
-      return JSON.parse(dataAttr);
-    } catch (e) {
-      console.warn("Trajectory3DPlotHook: Failed to parse chart data", e);
-      return { points: [] };
-    }
+    return parseChartData(this.el, 'chartData', { points: [] });
   },
 
   getConfig() {
-    return {
-      width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 600,
-      height: parseInt(this.el.dataset.chartHeight) || 400,
-    };
+    return getChartDimensions(this.el, {
+      width: 600,
+      height: 400,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    });
   },
 
   supportToColor(support) {

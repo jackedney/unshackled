@@ -1,3 +1,5 @@
+import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+
 /**
  * ContributionsPieHook - D3 pie/donut chart for agent contributions.
  *
@@ -26,35 +28,15 @@ const ContributionsPieHook = {
   },
 
   getData() {
-    const dataAttr = this.el.dataset.chartData;
-
-    if (!dataAttr) {
-      console.warn(
-        "ContributionsPieHook: Missing data-chart-data attribute",
-        this.el.id
-      );
-      return [];
-    }
-
-    try {
-      return JSON.parse(dataAttr);
-    } catch (e) {
-      console.warn("ContributionsPieHook: Failed to parse chart data", e);
-      return [];
-    }
+    return parseChartData(this.el, 'chartData', []);
   },
 
   getConfig() {
-    return {
-      width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 400,
-      height: parseInt(this.el.dataset.chartHeight) || 300,
-      margin: {
-        top: parseInt(this.el.dataset.chartMarginTop) || 20,
-        right: parseInt(this.el.dataset.chartMarginRight) || 120,
-        bottom: parseInt(this.el.dataset.chartMarginBottom) || 20,
-        left: parseInt(this.el.dataset.chartMarginLeft) || 20,
-      },
-    };
+    return getChartDimensions(this.el, {
+      width: 400,
+      height: 300,
+      margin: { top: 20, right: 120, bottom: 20, left: 20 }
+    });
   },
 
   // Agent role color palette - high contrast brutalist colors

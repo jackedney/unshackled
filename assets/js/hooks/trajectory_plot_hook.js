@@ -1,3 +1,5 @@
+import { parseChartData, getChartDimensions } from './utils/chart_data.js';
+
 /**
  * TrajectoryPlotHook - D3 2D scatter plot for embedding space trajectory.
  *
@@ -29,35 +31,15 @@ const TrajectoryPlotHook = {
   },
 
   getData() {
-    const dataAttr = this.el.dataset.chartData;
-
-    if (!dataAttr) {
-      console.warn(
-        "TrajectoryPlotHook: Missing data-chart-data attribute",
-        this.el.id
-      );
-      return [];
-    }
-
-    try {
-      return JSON.parse(dataAttr);
-    } catch (e) {
-      console.warn("TrajectoryPlotHook: Failed to parse chart data", e);
-      return [];
-    }
+    return parseChartData(this.el, 'chartData', []);
   },
 
   getConfig() {
-    return {
-      width: parseInt(this.el.dataset.chartWidth) || this.el.clientWidth || 500,
-      height: parseInt(this.el.dataset.chartHeight) || 300,
-      margin: {
-        top: parseInt(this.el.dataset.chartMarginTop) || 30,
-        right: parseInt(this.el.dataset.chartMarginRight) || 30,
-        bottom: parseInt(this.el.dataset.chartMarginBottom) || 50,
-        left: parseInt(this.el.dataset.chartMarginLeft) || 60,
-      },
-    };
+    return getChartDimensions(this.el, {
+      width: 500,
+      height: 300,
+      margin: { top: 30, right: 30, bottom: 50, left: 60 }
+    });
   },
 
   cleanup() {
