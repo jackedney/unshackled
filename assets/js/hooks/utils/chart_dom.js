@@ -72,3 +72,28 @@ export function removeTooltip(tooltip) {
     tooltip.remove();
   }
 }
+
+/**
+ * Apply standard text styling to a D3 selection.
+ * Defaults: fill=#9ca3af, font-family=monospace, font-size=12px
+ * Usage with .call(): selection.call(applyTextStyle, { fill: '#ffffff' })
+ * Usage direct: applyTextStyle(selection, { fill: '#ffffff' })
+ * @param {d3.Selection} selection - D3 selection to style (passed automatically by .call())
+ * @param {Object} overrides - Optional style overrides
+ * @returns {d3.Selection} The same selection for chaining
+ */
+export function applyTextStyle(selection, overrides = {}) {
+  const defaultStyle = {
+    fill: '#9ca3af',
+    'font-family': 'monospace',
+    'font-size': '12px'
+  };
+
+  const style = { ...defaultStyle, ...overrides };
+
+  for (const [key, value] of Object.entries(style)) {
+    selection.attr(key, value);
+  }
+
+  return selection;
+}

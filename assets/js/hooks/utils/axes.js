@@ -1,8 +1,10 @@
 /**
  * Axes and Gridline Utilities
- * 
+ *
  * Provides reusable D3 axis and gridline rendering functions for consistent chart styling.
  */
+
+import { applyTextStyle } from './chart_dom.js';
 
 /**
  * Render X axis with optional label.
@@ -37,17 +39,14 @@ export function renderXAxis(g, xScale, config = {}) {
     .call(xAxis)
     .attr("color", "#9ca3af")
     .selectAll("text")
-    .attr("fill", "#9ca3af")
-    .attr("font-family", "monospace");
+    .call(applyTextStyle);
 
   if (label) {
     g.append("text")
       .attr("x", innerWidth / 2)
       .attr("y", innerHeight + labelOffset)
       .attr("text-anchor", "middle")
-      .attr("fill", "#6b7280")
-      .attr("font-size", "12px")
-      .attr("font-family", "monospace")
+      .call(applyTextStyle, { fill: "#6b7280" })
       .text(label);
   }
 
@@ -84,8 +83,7 @@ export function renderYAxis(g, yScale, config = {}) {
     .call(yAxis)
     .attr("color", "#9ca3af")
     .selectAll("text")
-    .attr("fill", "#9ca3af")
-    .attr("font-family", "monospace");
+    .call(applyTextStyle);
 
   if (label) {
     g.append("text")
@@ -93,9 +91,7 @@ export function renderYAxis(g, yScale, config = {}) {
       .attr("x", -innerHeight / 2)
       .attr("y", -labelOffset)
       .attr("text-anchor", "middle")
-      .attr("fill", "#6b7280")
-      .attr("font-size", "12px")
-      .attr("font-family", "monospace")
+      .call(applyTextStyle, { fill: "#6b7280" })
       .text(label);
   }
 
@@ -189,9 +185,7 @@ export function renderThresholdLine(g, yScale, value, config = {}) {
       .attr("y", yScale(value))
       .attr("dy", textDy)
       .attr("text-anchor", textAnchor)
-      .attr("fill", color)
-      .attr("font-size", "10px")
-      .attr("font-family", "monospace")
+      .call(applyTextStyle, { fill: color, "font-size": "10px" })
       .text(label);
   }
 

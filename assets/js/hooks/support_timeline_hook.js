@@ -1,5 +1,5 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
-import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
 import { supportToColor } from './utils/colors.js';
 import { TRANSITION_DURATION, DEATH_THRESHOLD, GRADUATION_THRESHOLD } from './utils/constants.js';
 import { renderXAxis, renderYAxis, renderGridlines, renderThresholdLine } from './utils/axes.js';
@@ -97,8 +97,7 @@ const SupportTimelineHook = {
         this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis)
           .attr("color", "#9ca3af")
           .selectAll("text")
-          .attr("fill", "#9ca3af")
-          .attr("font-family", "monospace");
+          .call(applyTextStyle);
       }
 
       if (this.yAxisG) {
@@ -106,8 +105,7 @@ const SupportTimelineHook = {
         this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis)
           .attr("color", "#9ca3af")
           .selectAll("text")
-          .attr("fill", "#9ca3af")
-          .attr("font-family", "monospace");
+          .call(applyTextStyle);
       }
 
       // Animate threshold lines
@@ -144,8 +142,7 @@ const SupportTimelineHook = {
           .attr("x", width / 2)
           .attr("y", height / 2)
           .attr("text-anchor", "middle")
-          .attr("fill", "#6b7280")
-          .attr("font-family", "monospace")
+          .call(applyTextStyle, { fill: "#6b7280" })
           .text("No data yet");
         return;
       }

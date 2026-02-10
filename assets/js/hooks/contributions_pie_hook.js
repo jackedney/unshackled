@@ -1,5 +1,5 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
-import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
 import { ROLE_COLORS, getRoleColor, formatRole, formatRoleShort } from './utils/colors.js';
 import { renderLegend } from './utils/legend.js';
 
@@ -72,8 +72,7 @@ const ContributionsPieHook = {
           .attr("x", width / 2)
           .attr("y", height / 2)
           .attr("text-anchor", "middle")
-          .attr("fill", "#6b7280")
-          .attr("font-family", "monospace")
+          .call(applyTextStyle, { fill: "#6b7280" })
           .text("No contributions yet");
       }
       return;
@@ -198,9 +197,7 @@ const ContributionsPieHook = {
         .attr("class", "center-label")
         .attr("text-anchor", "middle")
         .attr("dy", "-0.2em")
-        .attr("fill", "#9ca3af")
-        .attr("font-family", "monospace")
-        .attr("font-size", "12px")
+        .call(applyTextStyle)
         .text("TOTAL");
 
       pieGroup
@@ -208,9 +205,7 @@ const ContributionsPieHook = {
         .attr("class", "center-count")
         .attr("text-anchor", "middle")
         .attr("dy", "1em")
-        .attr("fill", "#ffffff")
-        .attr("font-family", "monospace")
-        .attr("font-size", "20px")
+        .call(applyTextStyle, { fill: "#ffffff", "font-size": "20px" })
         .attr("font-weight", "bold")
         .text(totalCount);
     } else {

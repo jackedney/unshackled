@@ -8,6 +8,8 @@
  * Gradient legend: Continuous gradient bar with labels
  */
 
+import { applyTextStyle } from './chart_dom.js';
+
 /**
  * Render a legend on an SVG selection.
  *
@@ -88,13 +90,6 @@ function renderGridLegend(legendGroup, items, config) {
     labelStyle,
   } = config;
 
-  const defaultLabelStyle = {
-    fill: '#9ca3af',
-    'font-family': 'monospace',
-    'font-size': '10px',
-  };
-  const finalLabelStyle = { ...defaultLabelStyle, ...labelStyle };
-
   const legendItems = legendGroup
     .selectAll('.legend-item')
     .data(items)
@@ -119,10 +114,7 @@ function renderGridLegend(legendGroup, items, config) {
     .append('text')
     .attr('x', boxOffset.x)
     .attr('y', boxOffset.y)
-    .attr('fill', finalLabelStyle.fill)
-    .attr('font-family', finalLabelStyle['font-family'])
-    .attr('font-size', finalLabelStyle['font-size'])
-    .text((d) => d.label);
+    .call(applyTextStyle, { 'font-size': '10px', ...labelStyle });
 }
 
 function renderGradientLegend(legendGroup, items, config) {
@@ -132,13 +124,6 @@ function renderGradientLegend(legendGroup, items, config) {
     strokeWidth,
     labelStyle,
   } = config;
-
-  const defaultLabelStyle = {
-    fill: '#6b7280',
-    'font-family': 'monospace',
-    'font-size': '10px',
-  };
-  const finalLabelStyle = { ...defaultLabelStyle, ...labelStyle };
 
   const defs = legendGroup.append('defs');
   const gradient = defs
@@ -165,9 +150,7 @@ function renderGradientLegend(legendGroup, items, config) {
       .append('text')
       .attr('x', 0)
       .attr('y', gradientSize.height + 12)
-      .attr('fill', finalLabelStyle.fill)
-      .attr('font-family', finalLabelStyle['font-family'])
-      .attr('font-size', finalLabelStyle['font-size'])
+      .call(applyTextStyle, { fill: '#6b7280', 'font-size': '10px', ...labelStyle })
       .text(items.startLabel);
   }
 
@@ -177,9 +160,7 @@ function renderGradientLegend(legendGroup, items, config) {
       .attr('x', gradientSize.width)
       .attr('y', gradientSize.height + 12)
       .attr('text-anchor', 'end')
-      .attr('fill', finalLabelStyle.fill)
-      .attr('font-family', finalLabelStyle['font-family'])
-      .attr('font-size', finalLabelStyle['font-size'])
+      .call(applyTextStyle, { fill: '#6b7280', 'font-size': '10px', ...labelStyle })
       .text(items.endLabel);
   }
 
@@ -189,9 +170,7 @@ function renderGradientLegend(legendGroup, items, config) {
       .attr('x', gradientSize.width / 2)
       .attr('y', -3)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#9ca3af')
-      .attr('font-family', 'monospace')
-      .attr('font-size', '10px')
+      .call(applyTextStyle, { 'font-size': '10px' })
       .text(items.title);
   }
 }

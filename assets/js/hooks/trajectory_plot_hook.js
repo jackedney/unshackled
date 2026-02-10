@@ -1,5 +1,5 @@
 import { parseChartData, getChartDimensions } from './utils/chart_data.js';
-import { cleanupSvg, createTooltip, showTooltip, hideTooltip } from './utils/chart_dom.js';
+import { cleanupSvg, createTooltip, showTooltip, hideTooltip, applyTextStyle } from './utils/chart_dom.js';
 import { TRANSITION_DURATION } from './utils/constants.js';
 import { renderLegend } from './utils/legend.js';
 import { renderXAxis, renderYAxis, renderGridlines } from './utils/axes.js';
@@ -78,8 +78,7 @@ const TrajectoryPlotHook = {
           .attr("x", width / 2)
           .attr("y", height / 2)
           .attr("text-anchor", "middle")
-          .attr("fill", "#6b7280")
-          .attr("font-family", "monospace")
+          .call(applyTextStyle, { fill: "#6b7280" })
           .text("No trajectory data yet");
       }
       return;
@@ -141,8 +140,7 @@ const TrajectoryPlotHook = {
         this.xAxisG.transition().duration(TRANSITION_DURATION).call(xAxis)
           .attr("color", "#9ca3af")
           .selectAll("text")
-          .attr("fill", "#9ca3af")
-          .attr("font-family", "monospace");
+          .call(applyTextStyle);
       }
 
       if (this.yAxisG) {
@@ -150,8 +148,7 @@ const TrajectoryPlotHook = {
         this.yAxisG.transition().duration(TRANSITION_DURATION).call(yAxis)
           .attr("color", "#9ca3af")
           .selectAll("text")
-          .attr("fill", "#9ca3af")
-          .attr("font-family", "monospace");
+          .call(applyTextStyle);
       }
 
       xScale = newXScale;
